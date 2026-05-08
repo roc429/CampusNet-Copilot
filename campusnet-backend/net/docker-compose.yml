@@ -1,0 +1,81 @@
+services:
+  #neo4j:
+    #image: neo4j:5
+    #ports:
+      #- "7474:7474"
+      #- "7687:7687"
+    #environment:
+      #- NEO4J_AUTH=neo4j/neo4j123
+    #volumes:
+      #- neo4j_data:/data
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  pushgateway:
+    image: prom/pushgateway:latest
+    ports:
+      - "9091:9091"
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+  postgres:
+    image: postgres:15
+    container_name: netbox-postgres
+    environment:
+      POSTGRES_DB: netbox
+      POSTGRES_USER: netbox
+      POSTGRES_PASSWORD: netbox
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: netbox-redis
+    restart: unless-stopped
+
+  netbox:
+    image: netboxcommunity/netbox:latest
+    container_name: netbox
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8000:8080"
+    environment:
+      DB_WAIT_DEBUG: "1"
+      ALLOWED_HOSTS: "*"
+      DB_NAME: netbox
+      DB_USER: netbox
+      DB_PASSWORD: netbox
+      DB_HOST: netbox-postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DATABASE: 0
+      REDIS_CACHE_HOST: redis
+      REDIS_CACHE_PORT: 6379
+      REDIS_CACHE_DATABASE: 1
+      SECRET_KEY: "This-Is-A-Very-Long-Secret-Key-For-NetBox-And-It-Must-Be-At-Least-50-Characters-Long-1234567890"
+      SUPERUSER_NAME: admin
+      SUPERUSER_EMAIL: admin@example.com
+      SUPERUSER_PASSWORD: admin123
+    restart: unless-stopped
+
+volumes:
+  #neo4j_data:
+  grafana_data:
+  postgres_data:
