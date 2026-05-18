@@ -1,0 +1,161 @@
+neta/
+├── flow.py          # Ryu 控制器代码
+└── campus.py        # Mininet 拓扑代码
+
+
+# 核心-汇聚链路（高带宽）
+self.addLink(core, agg_teaching, bw=1000, delay='5ms', loss=0)
+
+core	        第一个交换机	    链路的一端（核心交换机）
+agg_teaching	第二个交换机	    链路的另一端（汇聚交换机）
+bw=1000	        1000 Mbps	      带宽 = 1Gbps
+delay='5ms'	    5 毫秒	           单向传输延迟
+loss=0	        0%	              丢包率
+
+核心层 s1
+汇聚层 s1->s2 s3 s4
+接入层 s2->s5 s6 s7 s8
+      s3->s9 s10 s11 s12
+      s4->s13 s14 s15 s16 
+
+
+层级	 设备数量	 设备名称	 链路带宽	       延迟	 丢包率
+核心层	   1台	      s1	      -	             - 	   -
+汇聚层	   3台	    s2,s3,s4	  -	             -	   -
+核心-汇聚  3条	   s1→s2/s3/s4 1000 Mbps        5ms	   0%
+接入层	   12台	    s5-s16	      -	             -	   -
+汇聚-接入  12条	   各汇聚→接入	 100 Mbps	      2ms	 1%
+教学区主机	10台	h1-h10	    10 Mbps	         1ms	0%
+宿舍区主机	10台	h11-h20	    10 Mbps	         1ms	0%
+服务器	    3台	  web,dns,gw   100-1000 Mbps	1ms	   0%
+
+(100.00Mbit 1ms delay 0% loss) (100.00Mbit 1ms delay 0% loss) (dns, s14) 
+(1000.00Mbit 1ms delay 0% loss) (1000.00Mbit 1ms delay 0% loss) (gw, s15) 
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h1, s5)
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h2, s6) 
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h3, s7) 
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h4, s8) 
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h5, s5)
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h6, s6) 
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h7, s7) 
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h8, s8)
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h9, s5)
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h10, s6) 
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h11, s9) 
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h12, s10)
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h13, s11)
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h14, s12)
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h15, s9) 
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h16, s10) 
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h17, s11)
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h18, s12) 
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h19, s9) 
+(10.00Mbit 1ms delay 0% loss) (10.00Mbit 1ms delay 0% loss) (h20, s10)
+(1000.00Mbit 5ms delay 0% loss) (1000.00Mbit 5ms delay 0% loss) (s1, s2)
+(1000.00Mbit 5ms delay 0% loss) (1000.00Mbit 5ms delay 0% loss) (s1, s3) 
+(1000.00Mbit 5ms delay 0% loss) (1000.00Mbit 5ms delay 0% loss) (s1, s4) 
+(100.00Mbit 2ms delay 1% loss) (100.00Mbit 2ms delay 1% loss) (s2, s5) 
+(100.00Mbit 2ms delay 1% loss) (100.00Mbit 2ms delay 1% loss) (s2, s6) 
+(100.00Mbit 2ms delay 1% loss) (100.00Mbit 2ms delay 1% loss) (s2, s7)
+(100.00Mbit 2ms delay 1% loss) (100.00Mbit 2ms delay 1% loss) (s2, s8) 
+(100.00Mbit 2ms delay 1% loss) (100.00Mbit 2ms delay 1% loss) (s3, s9)
+(100.00Mbit 2ms delay 1% loss) (100.00Mbit 2ms delay 1% loss) (s3, s10) 
+(100.00Mbit 2ms delay 1% loss) (100.00Mbit 2ms delay 1% loss) (s3, s11) 
+(100.00Mbit 2ms delay 1% loss) (100.00Mbit 2ms delay 1% loss) (s3, s12) 
+(1000.00Mbit 1ms delay 0% loss) (1000.00Mbit 1ms delay 0% loss) (s4, s13)
+(1000.00Mbit 1ms delay 0% loss) (1000.00Mbit 1ms delay 0% loss) (s4, s14) 
+(1000.00Mbit 1ms delay 0% loss) (1000.00Mbit 1ms delay 0% loss) (s4, s15) 
+(1000.00Mbit 1ms delay 0% loss) (1000.00Mbit 1ms delay 0% loss) (s4, s16) 
+(100.00Mbit 1ms delay 0% loss) (100.00Mbit 1ms delay 0% loss) (web, s13)
+
+
+
+
+
+
+
+
+
+
+
+
+flwo.py
+
+导入模块
+    ↓
+定义控制器类 (CampusFlow)
+    ↓
+初始化 (存储 MAC 地址表)
+    ↓
+处理交换机连接事件 (下发 table-miss 流表)
+    ↓
+处理 PacketIn 事件 (MAC 学习 + 转发决策)
+
+from ryu.base import app_manager
+from ryu.controller import ofp_event
+from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
+from ryu.controller.handler import set_ev_cls
+from ryu.ofproto import ofproto_v1_3
+from ryu.lib.packet import packet, ethernet
+
+
+app_manager	Ryu 应用的基类	让这个类成为合法的 Ryu 控制器
+ofp_event	OpenFlow 事件定义	交换机发来的各种消息类型（连接、数据包等）
+CONFIG_DISPATCHER	配置阶段状态	交换机刚连接，还在配置时使用
+MAIN_DISPATCHER	正常运行状态	交换机配置完成，正常处理数据时使用
+set_ev_cls	事件装饰器	标记哪个函数处理哪种事件
+ofproto_v1_3	OpenFlow 1.3 协议	协议常量（端口号、动作类型等）
+packet	数据包解析器	把二进制数据解析成可读的包结构
+ethernet	以太网帧	从包中提取 MAC 地址等信息
+
+
+启动配置
+步骤 1：启动 Ryu 控制器
+ryu-manager flow.py
+步骤 2：启动 Mininet
+sudo mn --custom campus.py --topo campus \
+        --controller=remote,ip=127.0.0.1,port=6633 \
+        --link=tc \
+        --mac
+步骤 3：配置网关虚拟 IP（在 mininet> 中）
+mininet> gw ip addr add 192.168.1.1/24 dev gw-eth0
+mininet> gw ip addr add 192.168.2.1/24 dev gw-eth0
+
+步骤 4：开启 IP 转发
+mininet> gw ip addr show gw-eth0
+应该看到三个 IP：192.168.3.1、192.168.1.1、192.168.2.1
+
+步骤 4：开启 IP 转发
+mininet> gw sysctl -w net.ipv4.ip_forward=1
+mininet> gw iptables -P FORWARD ACCEPT
+
+
+pingall
+dns -> gw h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 web 
+gw -> dns X h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 web 
+h1 -> dns gw h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 web 
+h2 -> dns gw h1 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 web 
+h3 -> dns gw h1 h2 X h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 web 
+h4 -> dns gw h1 h2 h3 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h19 X web 
+h5 -> X gw h1 h2 h3 h4 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 web 
+h6 -> X gw h1 h2 h3 h4 h5 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h19 X web 
+h7 -> dns gw h1 h2 h3 h4 h5 h6 h8 h9 h10 h11 h12 h13 h14 h15 h16 X h18 X h20 web 
+h8 -> dns gw h1 h2 h3 h4 h5 h6 h7 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 web 
+h9 -> dns gw h1 h2 h3 h4 h5 h6 h7 h8 h10 h11 X h13 h14 h15 h16 h17 h18 h19 h20 web 
+h10 -> dns gw h1 h2 h3 h4 h5 h6 h7 h8 h9 h11 h12 h13 h14 h15 X h17 h18 h19 h20 web 
+h11 -> dns gw h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h12 h13 h14 h15 h16 h17 h18 h19 h20 web 
+h12 -> dns gw h1 h2 h3 h4 h5 X h7 h8 h9 h10 h11 h13 h14 h15 h16 h17 h18 h19 h20 web 
+h13 -> dns gw h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h14 h15 h16 h17 h18 h19 h20 web 
+h14 -> dns gw h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h15 h16 h17 h18 h19 h20 web 
+h15 -> dns gw h1 h2 h3 h4 h5 h6 h7 X h9 h10 h11 h12 h13 h14 h16 h17 h18 h19 h20 web 
+h16 -> dns gw h1 h2 h3 h4 h5 X h7 h8 h9 h10 h11 h12 h13 h14 h15 h17 h18 h19 h20 web 
+h17 -> dns gw h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h18 h19 h20 web 
+h18 -> dns gw h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 X h14 h15 h16 h17 h19 h20 web 
+h19 -> dns gw h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h20 web 
+h20 -> dns gw h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h19 web 
+web -> dns gw h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 X h20 
+
+
+丢包率	使用场景
+0%	    实验室理想环境
+1%	    模拟真实企业网络（轻微丢包）

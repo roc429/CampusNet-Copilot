@@ -1,0 +1,21 @@
+h1 ip route add default via 192.168.1.1
+h2 ip route add default via 192.168.1.1
+h3 ip route add default via 192.168.1.1
+h4 ip route add default via 192.168.1.1
+h5 ip route add default via 192.168.1.1
+h6 ip route add default via 192.168.1.1
+h7 ip route add default via 192.168.1.1
+h8 ip route add default via 192.168.1.1
+h9 ip route add default via 192.168.1.1
+h10 ip route add default via 192.168.1.1
+
+h11 ip route add default via 192.168.2.1
+h12 ip route add default via 192.168.2.1
+h13 ip route add default via 192.168.2.1
+h14 ip route add default via 192.168.2.1
+h15 ip route add default via 192.168.2.1
+h16 ip route add default via 192.168.2.1
+h17 ip route add default via 192.168.2.1
+h18 ip route add default via 192.168.2.1
+h19 ip route add default via 192.168.2.1
+h20 ip route add default via 192.168.2.1
