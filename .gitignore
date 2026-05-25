@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+.venv/
+venv/
+env/
+
+# Conda
+conda-meta/
+
+# Node
+node_modules/
+dist/
+build/
+
+# Environment
+.env
+
+# VSCode
+.vscode/
+
+# Logs
+*.log
+
+# HuggingFace Models
+hf_models/
+*.bin
+*.safetensors
+
+# Docker
+docker-data/
+
+# Neo4j
+data/
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.db
+*.sqlite3
+
+# Node
+node_modules/
+dist/
+build/
+
+# Env
+.env
+
+# Docker / database volumes
+NMB/volumes/
+**/volumes/
+**/data/
+**/logs/
+
+# Models
+hf_models/
+*.bin
+*.safetensors
+
+# OS
+.DS_Store
+Thumbs.db
