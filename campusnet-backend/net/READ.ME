@@ -1,0 +1,198 @@
+# CampusNet-Copilot 本地启动说明
+
+本文档按本地测试顺序说明需要启动哪些服务。以下命令默认在 PowerShell 中执行，项目后端目录为：
+
+```powershell
+F:\project\CampusNet-Copilot\campusnet-backend\net
+```
+
+## 0. 端口约定
+```text
+NetBox:              http://localhost:8000
+Grafana:             http://localhost:3000
+Prometheus:          http://localhost:9090
+NetBox MCP:          http://127.0.0.1:7001/mcp
+Prometheus MCP:      http://localhost:9001/sse
+Grafana MCP:         http://localhost:9002/sse
+TimesFM MCP:         http://localhost:9003/sse
+CampusNet FastAPI:   http://127.0.0.1:8010
+前端测试台:           http://127.0.0.1:8010/
+```
+
+## 1. 启动基础服务
+
+启动 Docker 后端服务(主要是Netbox和Prometheus)：
+
+```powershell
+cd F:\project\CampusNet-Copilot\campusnet-backend\net
+docker compose up -d
+```
+
+
+## 2. 配置 NetBox MCP Server
+
+NetBox MCP Server 位于后端同级目录：
+
+```powershell
+F:\project\CampusNet-Copilot\campusnet-backend\netbox-mcp-server
+```
+
+确认它的 `.env` 中至少包含：
+
+```env
+NETBOX_URL="http://localhost:8000"
+NETBOX_TOKEN="你的_NETBOX_TOKEN"
+TRANSPORT="http"
+HOST="127.0.0.1"
+PORT="7001"
+```
+
+注意：NetBox MCP 当前使用 Streamable HTTP，正确端点是：
+
+```text
+http://127.0.0.1:7001/mcp
+```
+
+
+启动 NetBox MCP Server：
+
+```powershell
+cd F:\project\CampusNet-Copilot\campusnet-backend\netbox-mcp-server
+uv run netbox-mcp-server
+```
+
+如果需要显式指定参数：
+
+```powershell
+uv run netbox-mcp-server `
+  --netbox-url http://localhost:8000 `
+  --netbox-token 你的_NETBOX_TOKEN `
+  --transport http `
+  --host 127.0.0.1 `
+  --port 7001
+```
+
+## 3. 启动 Prometheus MCP Server
+
+打开新终端：
+
+```powershell
+cd F:\project\CampusNet-Copilot\campusnet-backend\net\scripts
+uv run run_prometheus_mcp.py
+```
+
+## 5. 启动 TimesFM MCP Server
+
+打开新终端：
+
+```powershell
+cd F:\project\CampusNet-Copilot\campusnet-backend\net\scripts
+uv run run_timesfm_mcp.py
+```
+
+有真实 TimesFM 推理服务，额外设置：
+
+```powershell
+$env:TIMESFM_REMOTE_URL = "你的 TimesFM 推理服务地址"
+$env:TIMESFM_REMOTE_TOKEN = "你的 token"
+```
+
+否则 TimesFM MCP 会使用本地 EWMA 兜底预测。
+
+## 6. 启动 CampusNet FastAPI 后端
+
+打开新终端：
+
+```powershell
+cd F:\project\CampusNet-Copilot\campusnet-backend\net
+```
+
+默认避免随机后台遥测事件干扰用户诊断，保持：
+
+```powershell
+$env:TELEMETRY_MOCK_ENABLED = "false"
+```
+
+启动 FastAPI：
+
+```powershell
+uv run python -m uvicorn app.app:app --host 127.0.0.1 --port 8010 --reload
+```
+
+## 7. 前端测试台
+
+浏览器访问：
+
+```text
+http://127.0.0.1:8010/
+```
+
+前端测试台支持：
+
+```text
+1. 输入用户问题。
+2. 创建后台诊断任务。
+3. 展示流程状态，例如拓扑查询、指标查询、生成控制指令、安全审查。
+4. 遇到需审批命令时暂停。
+5. 点击确认后继续 mock SDN dry-run。
+6. 展示最终诊断与修复闭环报告。
+```
+
+## 8. 常用接口测试
+
+### 8.1 健康检查
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8010/health
+```
+
+### 8.2 用户诊断
+
+```powershell
+$res = Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://127.0.0.1:8010/chat" `
+  -ContentType "application/json" `
+  -Body '{"user_id":"u1","question":"图书馆三楼 WiFi 很卡，网页打不开，帮我分析原因"}'
+
+$res.answer
+```
+
+提取事件 ID：
+
+```powershell
+$res.answer -match 'evt-[a-f0-9]+' | Out-Null
+$eventId = $matches[0]
+$eventId
+```
+
+### 8.3 查看任务状态
+
+```powershell
+Invoke-RestMethod -Uri "http://127.0.0.1:8010/tasks/$eventId/status" | ConvertTo-Json -Depth 8
+```
+
+### 8.4 审批高风险命令
+
+如果任务状态为 `waiting_approval`，执行：
+
+```powershell
+Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://127.0.0.1:8010/tasks/$eventId/approve" `
+  -ContentType "application/json" `
+  -Body '{"approved_by":"admin"}'
+```
+
+### 8.5 查看最终报告
+
+```powershell
+Invoke-RestMethod -Uri "http://127.0.0.1:8010/reports/$eventId"
+```
+
+### 8.6 查看队列和存储状态
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8010/pipeline/stats
+```
+
