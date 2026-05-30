@@ -8,13 +8,14 @@ from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
-from app.agent.graph import build_diagnosis_graph
+from app.agent.graph import build_diagnosis_graph, build_ops_workflow_graph
 from app.agents.remediation_agent import RemediationAgent
 from app.agents.security_guard_agent import SecurityGuardAgent
 from app.mcp_clients import netbox_client, prometheus_client
 from app.mcp_clients.rag_client import search_knowledge_base
 from app.mcp.client import get_standard_mcp_manager
-from app.schemas import AnomalyEvent, DiagnosisResult
+from app.schemas import AnomalyEvent, DiagnosisResult, RemediationClosure, SecurityCheckRequest
+from app.services.sdn_controller_adapter import SDNControllerAdapter
 from app.stores import OpsMemoryStore
 
 
@@ -43,8 +44,10 @@ class DiagnosisAgent:
         self.store = store
         self.logger = logging.getLogger(self.__class__.__name__)
         self.graph = None
+        self.ops_workflow_graph = None
         self.remediation_agent = RemediationAgent(store=store)
         self.security_guard_agent = SecurityGuardAgent(store=store)
+        self.sdn_adapter = SDNControllerAdapter()
 
     async def _ensure_graph(self) -> None:
         """按需初始化 LangGraph 诊断图，图内 LLM 可调用动态 MCP tools。"""
@@ -52,8 +55,17 @@ class DiagnosisAgent:
         if self.graph is not None:
             return
         self.logger.info("Initializing LangGraph diagnosis graph with MCP tools ...")
-        self.graph = await build_diagnosis_graph()
+        self.graph = await build_diagnosis_graph(progress_callback=self._progress)
         self.logger.info("LangGraph diagnosis graph initialized.")
+
+    async def _ensure_ops_workflow_graph(self) -> None:
+        """按需初始化宏观运维闭环图。"""
+
+        if self.ops_workflow_graph is not None:
+            return
+        self.logger.info("Initializing LangGraph ops workflow graph ...")
+        self.ops_workflow_graph = build_ops_workflow_graph(self)
+        self.logger.info("LangGraph ops workflow graph initialized.")
 
     async def run(self) -> None:
         """持续消费事件并按 event_type 分流。"""
@@ -99,50 +111,15 @@ class DiagnosisAgent:
                 self.anomaly_queue.task_done()
 
     async def _complete_diagnosis_closure(self, result: DiagnosisResult) -> DiagnosisResult:
-        """Run the diagnosis remediation loop inside DiagnosisAgent.
+        """Run the macro ops workflow graph after diagnosis."""
 
-        The current MVP does not connect to the SDN controller. It determines
-        the commands, runs security checks, mock-validates dispatchable commands,
-        and records whether the issue can be considered resolved.
-        """
-
-        if not self._should_build_remediation(result):
-            self._progress(result.event_id, "completed", "无需进入自动修复闭环，诊断已完成。", "completed")
-            return result
         try:
-            self._progress(result.event_id, "remediation_planning", "正在生成修复计划和控制指令。")
-            closure = await self.remediation_agent.close_loop_preview(
-                diagnosis=result,
-                security_guard=self.security_guard_agent,
+            await self._ensure_ops_workflow_graph()
+            output = await self.ops_workflow_graph.ainvoke(  # type: ignore[union-attr]
+                {"diagnosis_result": result},
+                config={"recursion_limit": 20},
             )
-            self._progress(result.event_id, "security_review", "正在进行高风险指令安全审查。")
-            if closure.approval_required_commands:
-                self._progress(
-                    result.event_id,
-                    "waiting_approval",
-                    "存在需要人工确认的控制指令，已暂停下发，等待用户确认。",
-                    "waiting_approval",
-                )
-                await self._wait_for_approval(result.event_id)
-                self._progress(result.event_id, "approval_received", "已收到确认，继续执行控制指令 dry-run。")
-            else:
-                self._progress(result.event_id, "approval_skipped", "未发现需人工审批的高风险指令。")
-            self._progress(result.event_id, "sdn_dispatch", "正在下发可执行控制指令到 mock SDN Controller。")
-            execution_results = self._mock_execute_dispatchable_commands(closure)
-            if closure.approval_required_commands:
-                execution_results.extend(self._mock_execute_approved_commands(closure))
-            self._progress(result.event_id, "verification", "正在验证修复结果。")
-            verification = self._verify_closure(result, closure, execution_results)
-            result.evidence["remediation_closure"] = closure.model_dump()
-            result.evidence["execution_results"] = execution_results
-            result.evidence["verification"] = verification
-            result.recommendations = self._merge_recommendations(result.recommendations, closure)
-            result.final_reasoning = self._build_closed_loop_report(result, closure, execution_results, verification)
-            result.summary = result.final_reasoning
-            self._progress(result.event_id, "completed", "最终诊断与修复闭环报告已生成。", "completed")
-            if self.store is not None:
-                self.store.save_diagnosis(result)
-            return result
+            return output.get("diagnosis_result", result)
         except Exception as exc:  # noqa: BLE001
             self.logger.exception("DiagnosisAgent remediation closure failed event_id=%s", result.event_id)
             result.evidence["remediation_error"] = f"{type(exc).__name__}: {exc}"
@@ -153,6 +130,194 @@ class DiagnosisAgent:
             result.summary = result.final_reasoning
             self._progress(result.event_id, "failed", "修复闭环生成失败，已转人工处理。", "failed")
             return result
+
+    async def workflow_ingest(self, state: dict[str, Any]) -> dict[str, Any]:
+        """宏观闭环图入口：判断是否需要进入修复闭环。"""
+
+        result: DiagnosisResult = state["diagnosis_result"]
+        requires_remediation = self._should_build_remediation(result)
+        self._progress(
+            result.event_id,
+            "workflow_ingest",
+            "宏观运维闭环图已接收诊断结果，正在判断是否需要修复编排。",
+        )
+        return {"requires_remediation": requires_remediation}
+
+    async def workflow_plan(self, state: dict[str, Any]) -> dict[str, Any]:
+        """生成修复计划和候选控制命令。"""
+
+        result: DiagnosisResult = state["diagnosis_result"]
+        self._progress(result.event_id, "remediation_planning", "正在生成修复计划和控制指令。")
+        plan = await self.remediation_agent.build_plan(result)
+        return {"remediation_plan": plan}
+
+    async def workflow_review(self, state: dict[str, Any]) -> dict[str, Any]:
+        """对候选控制命令执行安全审查并形成闭环预执行结果。"""
+
+        result: DiagnosisResult = state["diagnosis_result"]
+        plan = state["remediation_plan"]
+        self._progress(result.event_id, "security_review", "正在进行高风险指令安全审查。")
+
+        decisions = []
+        dispatchable = []
+        approval_required = []
+        blocked = []
+        for command in plan.control_commands:
+            decision = await self.security_guard_agent.assess(
+                SecurityCheckRequest(
+                    user_id="system-remediation",
+                    command=command.command,
+                    target=command.target,
+                )
+            )
+            decisions.append(decision)
+            if decision.decision == "allow":
+                dispatchable.append(command)
+            elif decision.decision == "approve_required":
+                approval_required.append(command)
+            else:
+                blocked.append(command)
+
+        if blocked:
+            dispatch_status = "blocked"
+            plan.status = "blocked"
+        elif approval_required:
+            dispatch_status = "approval_required"
+        elif dispatchable:
+            dispatch_status = "ready_for_controller"
+            plan.status = "approved"
+        else:
+            dispatch_status = "no_command"
+
+        closure = RemediationClosure(
+            event_id=result.event_id,
+            plan=plan,
+            security_decisions=decisions,
+            dispatchable_commands=dispatchable,
+            approval_required_commands=approval_required,
+            blocked_commands=blocked,
+            dispatch_status=dispatch_status,  # type: ignore[arg-type]
+        )
+        if self.store is not None:
+            self.store.save_remediation_plan(plan)
+            self.store.save_remediation_closure(closure)
+        return {"remediation_plan": plan, "remediation_closure": closure}
+
+    async def workflow_approval_gate(self, state: dict[str, Any]) -> dict[str, Any]:
+        """需要人工审批时暂停，审批后继续执行。"""
+
+        result: DiagnosisResult = state["diagnosis_result"]
+        closure = state["remediation_closure"]
+        if closure.approval_required_commands:
+            self._progress(
+                result.event_id,
+                "waiting_approval",
+                "存在需要人工确认的控制指令，已暂停下发，等待用户确认。",
+                "waiting_approval",
+            )
+            await self._wait_for_approval(result.event_id)
+            decision = self.store.approval_decisions.get(result.event_id, {}) if self.store is not None else {}
+            if decision.get("approved") is False:
+                self._progress(
+                    result.event_id,
+                    "approval_rejected",
+                    "用户已拒绝执行需审批命令，跳过自动修复执行，直接生成诊断报告。",
+                )
+                return {"approval_rejected": True}
+            self._progress(result.event_id, "approval_received", "已收到确认，继续执行控制指令 dry-run。")
+        else:
+            self._progress(result.event_id, "approval_skipped", "未发现需人工审批的高风险指令。")
+        return {"approval_rejected": False}
+
+    async def workflow_dispatch(self, state: dict[str, Any]) -> dict[str, Any]:
+        """执行通过审查的控制命令 dry-run。"""
+
+        result: DiagnosisResult = state["diagnosis_result"]
+        closure = state["remediation_closure"]
+        self._progress(result.event_id, "sdn_compile", "正在通过 SDN Controller Adapter 编译控制命令。")
+        execution_results = await self._execute_dispatchable_commands_with_adapter(closure)
+        if closure.approval_required_commands:
+            execution_results.extend(await self._execute_approved_commands_with_adapter(closure))
+        self._progress(result.event_id, "sdn_dispatch", "SDN Controller Adapter 已完成 mock dry-run/模拟下发。")
+        return {"execution_results": execution_results}
+
+    async def workflow_merge(self, state: dict[str, Any]) -> dict[str, Any]:
+        """合并诊断、修复计划、安全审查和执行证据。"""
+
+        result: DiagnosisResult = state["diagnosis_result"]
+        closure = state["remediation_closure"]
+        execution_results = state.get("execution_results", [])
+        self._progress(result.event_id, "merge", "正在合并诊断、修复计划和控制命令执行证据。")
+        result.evidence["remediation_closure"] = closure.model_dump()
+        result.evidence["execution_results"] = execution_results
+        result.recommendations = self._merge_recommendations(result.recommendations, closure)
+        return {"diagnosis_result": result}
+
+    async def workflow_verify(self, state: dict[str, Any]) -> dict[str, Any]:
+        """验证闭环处置结果。"""
+
+        result: DiagnosisResult = state["diagnosis_result"]
+        closure = state.get("remediation_closure")
+        execution_results = state.get("execution_results", [])
+        self._progress(result.event_id, "verification", "正在验证修复结果。")
+        if closure is None:
+            verification = {
+                "status": "no_remediation_closure",
+                "fixed": False,
+                "risk_level": result.risk_level,
+                "message": "未形成修复闭环结果，已转人工复核。",
+            }
+        else:
+            verification = self._verify_closure(result, closure, execution_results)
+            result.evidence["remediation_closure"] = closure.model_dump()
+            result.evidence["execution_results"] = execution_results
+        result.evidence["verification"] = verification
+        return {"diagnosis_result": result, "verification": verification}
+
+    async def workflow_escalate(self, state: dict[str, Any]) -> dict[str, Any]:
+        """自动闭环无法继续时转人工复核。"""
+
+        result: DiagnosisResult = state["diagnosis_result"]
+        closure = state.get("remediation_closure")
+        if state.get("approval_rejected"):
+            self._progress(
+                result.event_id,
+                "escalate",
+                "用户拒绝执行修复命令，已跳过自动修复，仅生成诊断报告。",
+            )
+            result.evidence["approval_rejected"] = True
+        else:
+            self._progress(result.event_id, "escalate", "当前闭环无法自动执行，已转人工复核。")
+        if closure is not None:
+            result.evidence["remediation_closure"] = closure.model_dump()
+            result.recommendations = self._merge_recommendations(result.recommendations, closure)
+        return {"diagnosis_result": result, "execution_results": []}
+
+    async def workflow_final_report(self, state: dict[str, Any]) -> dict[str, Any]:
+        """生成最终诊断与闭环报告。"""
+
+        result: DiagnosisResult = state["diagnosis_result"]
+        if not state.get("requires_remediation"):
+            self._progress(result.event_id, "completed", "无需进入自动修复闭环，诊断已完成。", "completed")
+            if self.store is not None:
+                self.store.save_diagnosis(result)
+            return {"diagnosis_result": result}
+
+        closure = state.get("remediation_closure")
+        execution_results = state.get("execution_results", [])
+        verification = state.get("verification", {})
+        if closure is None:
+            result.final_reasoning = (
+                f"{result.summary or result.final_reasoning}\n\n"
+                "闭环处置：未生成可执行修复闭环，已转人工复核。"
+            )
+        else:
+            result.final_reasoning = self._build_closed_loop_report(result, closure, execution_results, verification)
+        result.summary = result.final_reasoning
+        self._progress(result.event_id, "completed", "最终诊断与修复闭环报告已生成。", "completed")
+        if self.store is not None:
+            self.store.save_diagnosis(result)
+        return {"diagnosis_result": result}
 
     def _progress(self, event_id: str, stage: str, message: str, status: str = "running") -> None:
         if self.store is not None:
@@ -203,6 +368,18 @@ class DiagnosisAgent:
             )
         return results
 
+    async def _execute_dispatchable_commands_with_adapter(self, closure: Any) -> list[dict[str, Any]]:
+        results: list[dict[str, Any]] = []
+        for command in closure.dispatchable_commands:
+            self._progress(
+                closure.event_id,
+                "sdn_command_dry_run",
+                f"正在对低风险命令进行 SDN Adapter dry-run：{command.command}",
+            )
+            result = await self.sdn_adapter.dry_run(command)
+            results.append(result.model_dump())
+        return results
+
     @staticmethod
     def _mock_execute_approved_commands(closure: Any) -> list[dict[str, Any]]:
         results: list[dict[str, Any]] = []
@@ -222,6 +399,18 @@ class DiagnosisAgent:
             )
         return results
 
+    async def _execute_approved_commands_with_adapter(self, closure: Any) -> list[dict[str, Any]]:
+        results: list[dict[str, Any]] = []
+        for command in closure.approval_required_commands:
+            self._progress(
+                closure.event_id,
+                "sdn_command_dispatch",
+                f"正在对已审批命令执行 SDN Adapter mock 下发：{command.command}",
+            )
+            result = await self.sdn_adapter.dispatch(command, approved=True)
+            results.append(result.model_dump())
+        return results
+
     @staticmethod
     def _verify_closure(
         result: DiagnosisResult,
@@ -233,9 +422,14 @@ class DiagnosisAgent:
             fixed = False
             message = "存在被安全护栏阻断的命令，问题未进入自动修复执行阶段。"
         elif closure.approval_required_commands:
-            status = "approved_dry_run_validated"
-            fixed = False
-            message = "需审批命令已在用户确认后完成 dry-run 校验；当前未连接真实 SDN Controller，问题不能判定已解决。"
+            if result.evidence.get("approval_rejected"):
+                status = "approval_rejected"
+                fixed = False
+                message = "用户拒绝执行需审批命令，自动修复已跳过；本次仅输出诊断结论和人工处置建议。"
+            else:
+                status = "approved_dry_run_validated"
+                fixed = False
+                message = "需审批命令已在用户确认后完成 dry-run 校验；当前未连接真实 SDN Controller，问题不能判定已解决。"
         elif execution_results:
             status = "dry_run_validated"
             fixed = False

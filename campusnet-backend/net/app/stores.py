@@ -80,3 +80,8 @@ class OpsMemoryStore:
         self.approval_decisions[event_id] = {"approved": True, "approved_by": approved_by}
         self.add_progress(event_id, "approval", f"{approved_by} 已确认执行需审批命令。", "running")
         self.approval_event(event_id).set()
+
+    def reject(self, event_id: str, rejected_by: str = "user") -> None:
+        self.approval_decisions[event_id] = {"approved": False, "rejected_by": rejected_by}
+        self.add_progress(event_id, "approval_rejected", f"{rejected_by} 已拒绝执行需审批命令。", "running")
+        self.approval_event(event_id).set()

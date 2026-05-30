@@ -196,3 +196,90 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8010/reports/$eventId"
 Invoke-RestMethod http://127.0.0.1:8010/pipeline/stats
 ```
 
+### 8.7 查看 MCP 连接状态
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8010/api/mcp/health | ConvertTo-Json -Depth 8
+```
+
+### 8.8 通过 FastAPI 统一调用 MCP 工具
+
+```powershell
+Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://127.0.0.1:8010/api/mcp/call" `
+  -ContentType "application/json" `
+  -Body '{"server_name":"prometheus","tool_name":"instant_query","arguments":{"promql":"up"}}' |
+  ConvertTo-Json -Depth 8
+```
+
+### 8.9 查询单设备实时遥测指标
+
+```powershell
+Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://127.0.0.1:8010/api/ops/metrics" `
+  -ContentType "application/json" `
+  -Body '{"device_id":"AP-LIB-3F-02"}' |
+  ConvertTo-Json -Depth 8
+```
+
+返回格式示例：
+
+```json
+{
+  "device_id": "AP-LIB-3F-02",
+  "ap_load": 92.3,
+  "packet_loss": 0.061,
+  "latency": 156.0,
+  "bandwidth_usage": 87.2,
+  "timestamp": "2026-05-29T10:20:00+00:00"
+}
+```
+
+### 8.10 查看 Agent 状态流输出
+
+```powershell
+Invoke-RestMethod -Uri "http://127.0.0.1:8010/api/agent/status?event_id=$eventId" |
+  ConvertTo-Json -Depth 10
+```
+
+### 8.11 单独测试 SDN Controller Adapter
+
+当前 Adapter 使用 mock 模式，只编译控制器负载并进行 dry-run，不会修改真实网络。
+
+```powershell
+Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://127.0.0.1:8010/sdn/dry-run" `
+  -ContentType "application/json" `
+  -Body '{
+    "command_type":"poe_power_cycle",
+    "target":"AP-LIB-3F-01",
+    "command":"poe_power_cycle --ap AP-LIB-3F-01 --dry-run",
+    "risk_level":"warning",
+    "requires_approval":true,
+    "dry_run":true,
+    "rationale":"测试 SDN Adapter 编译和 dry-run"
+  }' |
+  ConvertTo-Json -Depth 10
+```
+
+模拟已审批命令下发：
+
+```powershell
+Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://127.0.0.1:8010/sdn/mock-dispatch" `
+  -ContentType "application/json" `
+  -Body '{
+    "command_type":"prepare_link_failover",
+    "target":"SW-LIB-AGG-01",
+    "command":"prepare_link_failover --device SW-LIB-AGG-01 --dry-run",
+    "risk_level":"critical",
+    "requires_approval":true,
+    "dry_run":true,
+    "rationale":"测试 OpenFlow failover payload 编译"
+  }' |
+  ConvertTo-Json -Depth 10
+```

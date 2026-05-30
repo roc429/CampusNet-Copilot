@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Callable
 from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage
@@ -22,22 +23,44 @@ class DiagnosisFunctionNodes:
         llm_with_tools: Any,
         tool_node: ToolNode | None,
         llm_plain: Any,
+        progress_callback: Callable[[str, str, str, str], None] | None = None,
     ) -> None:
         self.llm_with_tools = llm_with_tools
         self.tool_node = tool_node
         self.llm_plain = llm_plain
+        self.progress_callback = progress_callback
 
     async def call_model(self, state: AgentState) -> dict[str, Any]:
         """调用绑定工具后的 LLM。"""
 
+        event_id = state.get("event_id", "unknown")
+        self._emit_progress(
+            event_id=event_id,
+            stage="llm_reasoning",
+            message="DiagnosisAgent 正在进行模型推理，判断是否需要调用 NetBox、Prometheus、TimesFM 等工具。",
+        )
         response = await self.llm_with_tools.ainvoke(state["messages"])
         if isinstance(response, AIMessage) and response.tool_calls:
             logger.info(
                 "Model emitted tool_calls: %s",
                 json.dumps(response.tool_calls, ensure_ascii=False),
             )
+            for tool_call in response.tool_calls:
+                tool_name = str(tool_call.get("name", "unknown_tool"))
+                args = tool_call.get("args", {})
+                component, stage = self._tool_component_and_stage(tool_name)
+                self._emit_progress(
+                    event_id=event_id,
+                    stage=f"{stage}_requested",
+                    message=f"模型已请求调用 {component}：{tool_name}，正在准备执行。参数：{self._compact_json(args)}",
+                )
         else:
             logger.info("Model emitted final response without tool_calls.")
+            self._emit_progress(
+                event_id=event_id,
+                stage="llm_finalizing",
+                message="模型已完成工具证据分析，正在生成诊断结论。",
+            )
         return {"messages": [response]}
 
     async def run_tools(self, state: AgentState) -> dict[str, Any]:
@@ -50,6 +73,16 @@ class DiagnosisFunctionNodes:
         last_message = state["messages"][-1]
         tool_calls = getattr(last_message, "tool_calls", [])
         self._rewrite_prometheus_numeric_device_ids(state, tool_calls)
+        event_id = state.get("event_id", "unknown")
+        for tool_call in tool_calls:
+            tool_name = str(tool_call.get("name", "unknown_tool"))
+            args = tool_call.get("args", {})
+            component, stage = self._tool_component_and_stage(tool_name)
+            self._emit_progress(
+                event_id=event_id,
+                stage=f"{stage}_running",
+                message=f"正在调用 {component}：{tool_name}。参数：{self._compact_json(args)}",
+            )
         logger.info(
             "ToolNode executing calls: %s",
             json.dumps(tool_calls, ensure_ascii=False),
@@ -65,6 +98,14 @@ class DiagnosisFunctionNodes:
                 ensure_ascii=False,
             ),
         )
+        for tool_call in tool_calls:
+            tool_name = str(tool_call.get("name", "unknown_tool"))
+            component, stage = self._tool_component_and_stage(tool_name)
+            self._emit_progress(
+                event_id=event_id,
+                stage=f"{stage}_completed",
+                message=f"{component} 工具调用完成：{tool_name}，诊断图正在合并工具返回结果。",
+            )
 
         # 熔断保护：一轮工具全部失败时，明确要求模型停止继续调用工具并直接给出可执行建议。
         if returned_messages:
@@ -89,6 +130,36 @@ class DiagnosisFunctionNodes:
                 return {"messages": returned_messages}
 
         return result
+
+    def _emit_progress(self, event_id: str, stage: str, message: str, status: str = "running") -> None:
+        if self.progress_callback is None:
+            return
+        self.progress_callback(event_id, stage, message, status)
+
+    @staticmethod
+    def _tool_component_and_stage(tool_name: str) -> tuple[str, str]:
+        lowered = tool_name.lower()
+        if "netbox" in lowered:
+            return "NetBox MCP 拓扑查询", "tool_netbox"
+        if "prometheus" in lowered or "metric" in lowered or "query" in lowered or "promql" in lowered:
+            return "Prometheus MCP 指标查询", "tool_prometheus"
+        if "timesfm" in lowered or "forecast" in lowered or "anomaly" in lowered:
+            return "TimesFM MCP 预测分析", "tool_timesfm"
+        if "rag" in lowered or "knowledge" in lowered:
+            return "RAG 知识库检索", "tool_rag"
+        if "grafana" in lowered or "dashboard" in lowered:
+            return "Grafana MCP 看板查询", "tool_grafana"
+        return "MCP 工具", "tool_mcp"
+
+    @staticmethod
+    def _compact_json(payload: Any, limit: int = 240) -> str:
+        try:
+            text = json.dumps(payload, ensure_ascii=False)
+        except TypeError:
+            text = str(payload)
+        if len(text) <= limit:
+            return text
+        return f"{text[:limit]}..."
 
     @staticmethod
     def _rewrite_prometheus_numeric_device_ids(state: AgentState, tool_calls: list[dict[str, Any]]) -> None:

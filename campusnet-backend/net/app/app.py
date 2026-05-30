@@ -22,14 +22,21 @@ from app.schemas import (
     ApprovalRequest,
     ChatRequest,
     ChatResponse,
+    ControlCommand,
+    ControlExecutionResult,
     DiagnosisResult,
     ForecastQueryRequest,
+    MCPCallRequest,
+    OpsMetricsRequest,
+    OpsMetricsResponse,
     OpsReport,
     RemediationClosure,
     RemediationPlan,
     SecurityCheckRequest,
     SecurityDecision,
 )
+from app.services.ops_mcp_service import OpsMCPService
+from app.services.sdn_controller_adapter import SDNControllerAdapter
 from app.stores import OpsMemoryStore
 
 # ----------------------------
@@ -64,6 +71,8 @@ async def lifespan(_: FastAPI):
     chat_agent = ChatAgent(anomaly_queue=anomaly_queue, store=store)
     security_guard_agent = SecurityGuardAgent(store=store)
     remediation_agent = RemediationAgent(store=store)
+    ops_mcp_service = OpsMCPService()
+    sdn_adapter = SDNControllerAdapter()
 
     tasks = [
         asyncio.create_task(telemetry_agent.run(), name="telemetry-agent"),
@@ -76,6 +85,8 @@ async def lifespan(_: FastAPI):
     app.state.forecast_agent = forecast_agent
     app.state.security_guard_agent = security_guard_agent
     app.state.remediation_agent = remediation_agent
+    app.state.ops_mcp_service = ops_mcp_service
+    app.state.sdn_adapter = sdn_adapter
     app.state.store = store
     app.state.tasks = tasks
     app.state.latest_report = None
@@ -134,6 +145,78 @@ async def pipeline_stats() -> dict[str, int]:
         "event_store_size": len(store.events),
         "report_store_size": len(store.reports),
         "forecast_store_size": len(store.forecast_results),
+    }
+
+
+@app.get("/api/mcp/health")
+async def mcp_health() -> dict[str, object]:
+    """查看 StandardMCPManager 已配置和已连接的 MCP Server。"""
+
+    return await app.state.ops_mcp_service.health()
+
+
+@app.post("/api/mcp/call")
+async def mcp_call(req: MCPCallRequest) -> dict[str, object]:
+    """FastAPI 统一 MCP 调用封装，供调试和内部 Agent HTTP 工具复用。"""
+
+    try:
+        return await app.state.ops_mcp_service.call_tool(
+            server_name=req.server_name,
+            tool_name=req.tool_name,
+            arguments=req.arguments,
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"MCP 调用失败：{type(exc).__name__}: {exc}") from exc
+
+
+@app.post("/api/ops/metrics", response_model=OpsMetricsResponse)
+async def ops_metrics(req: OpsMetricsRequest) -> OpsMetricsResponse:
+    """获取单设备实时遥测指标，默认经 Prometheus MCP 查询。"""
+
+    return await app.state.ops_mcp_service.get_device_metrics(device_id=req.device_id, window=req.window)
+
+
+@app.get("/api/agent/status")
+async def agent_status(event_id: str | None = None) -> dict[str, object]:
+    """LangGraph/闭环诊断任务状态输出，供前端轮询展示流程进度。"""
+
+    _drain_report_queue()
+    resolved_event_id = event_id or getattr(app.state.chat_agent, "latest_diagnosis_event_id", None) or store.latest_report_id
+    if resolved_event_id is None:
+        return {
+            "latest_event_id": None,
+            "status": "idle",
+            "current_stage": None,
+            "progress": [],
+            "approval_required": False,
+            "report_ready": False,
+        }
+
+    event = store.events.get(resolved_event_id)
+    report = store.reports.get(resolved_event_id)
+    closure = store.remediation_closures.get(resolved_event_id)
+    if event is None and report is None:
+        raise HTTPException(status_code=404, detail=f"未找到任务：{resolved_event_id}")
+
+    progress = store.task_progress.get(resolved_event_id, [])
+    approval_commands = []
+    approval_required = False
+    if closure is not None:
+        approval_required = bool(closure.approval_required_commands)
+        approval_commands = [command.model_dump() for command in closure.approval_required_commands]
+
+    return {
+        "latest_event_id": resolved_event_id,
+        "event_id": resolved_event_id,
+        "event_type": str(event.event_type) if event is not None else None,
+        "source": event.source if event is not None else None,
+        "status": store.task_status.get(resolved_event_id, "unknown"),
+        "current_stage": progress[-1]["stage"] if progress else None,
+        "progress": progress,
+        "approval_required": approval_required and resolved_event_id not in store.approval_decisions,
+        "approval_commands": approval_commands,
+        "report_ready": report is not None,
+        "report_text": report.report_text if report is not None else None,
     }
 
 
@@ -225,6 +308,16 @@ async def approve_task(event_id: str, req: ApprovalRequest) -> dict[str, str]:
     return {"event_id": event_id, "status": "approved"}
 
 
+@app.post("/tasks/{event_id}/reject")
+async def reject_task(event_id: str, req: ApprovalRequest) -> dict[str, str]:
+    """拒绝执行需审批控制命令，跳过自动修复下发。"""
+
+    if event_id not in store.events and event_id not in store.diagnosis_results:
+        raise HTTPException(status_code=404, detail=f"未找到任务：{event_id}")
+    store.reject(event_id, rejected_by=req.rejected_by or req.approved_by)
+    return {"event_id": event_id, "status": "rejected"}
+
+
 @app.get("/admin/events")
 async def list_events() -> list[dict[str, str | None]]:
     """管理员查看统一运维事件。"""
@@ -264,6 +357,20 @@ async def security_check(req: SecurityCheckRequest) -> SecurityDecision:
     """对变更指令做安全拦截/审批判断。"""
 
     return await app.state.security_guard_agent.assess(req)
+
+
+@app.post("/sdn/dry-run", response_model=ControlExecutionResult)
+async def sdn_dry_run(command: ControlCommand) -> ControlExecutionResult:
+    """将控制命令编译为控制器负载，并执行 mock SDN dry-run。"""
+
+    return await app.state.sdn_adapter.dry_run(command)
+
+
+@app.post("/sdn/mock-dispatch", response_model=ControlExecutionResult)
+async def sdn_mock_dispatch(command: ControlCommand) -> ControlExecutionResult:
+    """模拟下发已审批控制命令到 SDN Controller Adapter。"""
+
+    return await app.state.sdn_adapter.dispatch(command, approved=True)
 
 
 @app.post("/remediation/plan/{event_id}", response_model=RemediationPlan)

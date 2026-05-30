@@ -49,9 +49,9 @@ class Settings:
 
     mcp_sse_read_timeout: int = int(os.getenv("MCP_SSE_READ_TIMEOUT", "300"))
     request_timeout: int = int(os.getenv("REQUEST_TIMEOUT", "90"))
-    api_key: str = os.getenv("API_KEY", "")
+    api_key: str = os.getenv("API_KEY", "tp-cbdsvkxvpknje55cp4o8sbnrp36o32mnmpgr7bo4j41eih5i")
     netbox_url: str = os.getenv("NETBOX_URL", "http://localhost:8000")
-    netbox_token: str = os.getenv("NETBOX_TOKEN", "")
+    netbox_token: str = os.getenv("NETBOX_TOKEN", "EXNTzKhIITG6SUaWMo6hRnF6nRl2g6lYKqcocl56")
 
     # TimesFM 远程推理(可选)
     timesfm_remote_url: str = os.getenv("TIMESFM_REMOTE_URL", "https://api-inference.huggingface.co/google/timesfm-1.0-200m-pytorch")

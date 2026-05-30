@@ -163,6 +163,38 @@ class ControlCommand(BaseModel):
     rationale: str = ""
 
 
+class SDNCommandPayload(BaseModel):
+    """SDN Controller Adapter 编译后的控制器负载。"""
+
+    command_id: str
+    command_type: str
+    target: str
+    controller: str = "mock-sdn-controller"
+    protocol: str = "mock"
+    operation: str
+    dry_run: bool = True
+    payload: dict[str, Any] = Field(default_factory=dict)
+    rollback: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ControlExecutionResult(BaseModel):
+    """SDN Controller Adapter 执行结果。"""
+
+    command_id: str
+    command_type: str
+    target: str
+    command: str
+    controller: str = "mock-sdn-controller"
+    protocol: str = "mock"
+    operation: str
+    dry_run: bool = True
+    status: str
+    success: bool
+    message: str
+    compiled_payload: SDNCommandPayload
+
+
 class RemediationClosure(BaseModel):
     """场景 1 闭环预执行结果。"""
 
@@ -190,3 +222,35 @@ class ApprovalRequest(BaseModel):
     """用户或管理员确认执行需审批命令。"""
 
     approved_by: str = "user"
+    rejected_by: str | None = None
+
+
+class MCPCallRequest(BaseModel):
+    """统一 MCP 工具调用请求。"""
+
+    server_name: str = Field(..., description="MCP server name, e.g. netbox/prometheus/timesfm/grafana")
+    tool_name: str = Field(..., description="Remote MCP tool name")
+    arguments: dict[str, Any] = Field(default_factory=dict, description="Tool arguments")
+
+
+class OpsMetricsRequest(BaseModel):
+    """实时网络遥测指标查询请求。"""
+
+    device_id: str = Field(..., description="设备 ID 或设备名称")
+    window: str = Field(default="5m", description="可选聚合窗口，默认 5m")
+
+
+class OpsMetricsResponse(BaseModel):
+    """面向 Agent 和前端的标准化实时指标响应。"""
+
+    device_id: str
+    ap_load: float | None = None
+    packet_loss: float | None = None
+    latency: float | None = None
+    bandwidth_usage: float | None = None
+    cpu_load: float | None = None
+    connections: float | None = None
+    timestamp: str = Field(default_factory=_utc_now_iso)
+    source: str = "prometheus_mcp"
+    missing_metrics: list[str] = Field(default_factory=list)
+    raw_queries: dict[str, str] = Field(default_factory=dict)
