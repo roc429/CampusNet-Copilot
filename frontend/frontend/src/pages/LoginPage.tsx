@@ -50,15 +50,14 @@ function LoginPage() {
 
   return (
     <div className="login-page">
-      <img src={loginIllustration} alt="" className="login-bg-illus" aria-hidden="true" />
       <span className="corner-triangles corner-triangles--top-left" aria-hidden="true" />
       <span className="corner-triangles corner-triangles--bottom-right" aria-hidden="true" />
       <Link className="login-home-link" to="/">
         首页
       </Link>
       <div className="login-layout">
-        <section className="login-left">
-          <div className="login-illustration" aria-hidden="true" />
+        <section className="login-left" aria-hidden="true">
+          <img src={loginIllustration} alt="" className="login-illus" />
         </section>
 
         <section className="login-panel">

@@ -26,6 +26,9 @@ class Settings(BaseSettings):
         "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
     )
 
+    # 校园网络遥测 CSV（默认指向仓库根目录 telemetry.csv）
+    telemetry_csv_path: str = ""
+
     @property
     def database_url_resolved(self) -> str:
         if self.database_url:
