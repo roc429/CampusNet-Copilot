@@ -1,0 +1,74 @@
+{
+  "seed_path": "/home/jowin/Desktop/neta/phase2/topology/topology_seed.json",
+  "generated_at": "2026-06-01T03:43:05+0800",
+  "controller": {
+    "type": "RemoteController",
+    "ip": "127.0.0.1",
+    "port": 6633
+  },
+  "core": {
+    "switch_node": "s1",
+    "device_id": "OF-CORE-01",
+    "dpid": "0000000000000001"
+  },
+  "area_switch_map": {
+    "302": {
+      "switch_node": "s2",
+      "area_id": "302",
+      "zone_id": "ZONE-TEACH",
+      "area_name": "302教学区",
+      "dpid": "0000000000000065"
+    }
+  },
+  "ap_switch_map": {
+    "AP-EXAM-302": {
+      "switch_node": "s3",
+      "device_id": "AP-EXAM-302",
+      "dpid": "0000000000000006",
+      "management_ip": "",
+      "device_name": "302考场AP",
+      "area_id": "302",
+      "zone_id": "ZONE-TEACH",
+      "role": "ap",
+      "port": "1"
+    }
+  },
+  "switch_device_map": {
+    "s3": "AP-EXAM-302"
+  },
+  "device_switch_map": {
+    "AP-EXAM-302": "s3"
+  },
+  "host_parent_device_map": {
+    "h1": "AP-EXAM-302",
+    "h2": "AP-EXAM-302"
+  },
+  "device_host_map": {
+    "AP-EXAM-302": [
+      "h1",
+      "h2"
+    ]
+  },
+  "host_ip_map": {
+    "h1": "10.0.0.2/24",
+    "h2": "10.0.0.3/24"
+  },
+  "devices": {
+    "AP-EXAM-302": {
+      "device_id": "AP-EXAM-302",
+      "device_name": "302考场AP",
+      "management_ip": "",
+      "area_id": "302",
+      "zone_id": "ZONE-TEACH",
+      "role": "ap",
+      "dpid": "6",
+      "normalized_dpid": "0000000000000006",
+      "port": "1",
+      "switch_node": "s3",
+      "host_nodes": [
+        "h1",
+        "h2"
+      ]
+    }
+  }
+}
