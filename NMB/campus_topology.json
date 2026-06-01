@@ -1,0 +1,522 @@
+{
+  "_meta": {
+    "version": "1.0",
+    "description": "CampusNet-Copilot 共享拓扑种子",
+    "last_updated": "2026-05-29",
+    "conventions": {
+      "device_id": "TYPE-LOCATION-NN 格式, 全局唯一",
+      "zone_id": "ZONE-xxx, 逻辑区域",
+      "area_id": "AREA-xxx, 物理位置",
+      "relations": "CONNECTED_TO | LOCATED_IN | AFFECTS | MANAGED_BY"
+    }
+  },
+  "zones": [
+    {
+      "zone_id": "ZONE-TEACH",
+      "name": "教学楼区域",
+      "type": "teaching"
+    },
+    {
+      "zone_id": "ZONE-DORM",
+      "name": "宿舍区域",
+      "type": "dormitory"
+    },
+    {
+      "zone_id": "ZONE-DC",
+      "name": "数据中心",
+      "type": "datacenter"
+    }
+  ],
+  "areas": [
+    {
+      "area_id": "AREA-EXAM-301",
+      "name": "教学楼301考场",
+      "zone_id": "ZONE-TEACH"
+    },
+    {
+      "area_id": "AREA-EXAM-302",
+      "name": "教学楼302考场",
+      "zone_id": "ZONE-TEACH"
+    },
+    {
+      "area_id": "AREA-EXAM-303",
+      "name": "教学楼303考场",
+      "zone_id": "ZONE-TEACH"
+    },
+    {
+      "area_id": "AREA-LIBRARY",
+      "name": "图书馆",
+      "zone_id": "ZONE-TEACH"
+    },
+    {
+      "area_id": "AREA-DORM-A",
+      "name": "宿舍A区",
+      "zone_id": "ZONE-DORM"
+    },
+    {
+      "area_id": "AREA-DATACENTER",
+      "name": "数据中心机房",
+      "zone_id": "ZONE-DC"
+    }
+  ],
+  "devices": [
+    {
+      "device_id": "RYU-CTRL-01",
+      "name": "SDN控制器",
+      "type": "controller",
+      "vendor": "Ryu",
+      "layer": "control",
+      "management_ip": "10.0.0.10/24",
+      "dpid": null,
+      "zone_id": "ZONE-DC",
+      "area_id": "AREA-DATACENTER",
+      "prometheus_labels": {
+        "device_type": "controller"
+      }
+    },
+    {
+      "device_id": "OF-CORE-01",
+      "name": "核心OpenFlow交换机",
+      "type": "openflow_switch",
+      "vendor": "OpenvSwitch",
+      "layer": "core",
+      "management_ip": "10.0.0.1/24",
+      "dpid": "00:00:00:00:00:00:00:01",
+      "zone_id": "ZONE-DC",
+      "area_id": "AREA-DATACENTER",
+      "prometheus_labels": {
+        "device_type": "switch",
+        "building": "DC",
+        "floor": "1F"
+      }
+    },
+    {
+      "device_id": "SW-TEACH-01",
+      "name": "教学楼汇聚交换机",
+      "type": "aggregation_switch",
+      "vendor": "OpenvSwitch",
+      "layer": "aggregation",
+      "management_ip": "10.0.1.1/24",
+      "dpid": "00:00:00:00:00:00:00:02",
+      "zone_id": "ZONE-TEACH",
+      "area_id": "AREA-EXAM-302",
+      "prometheus_labels": {
+        "device_type": "switch",
+        "building": "TEACH",
+        "floor": "1F"
+      }
+    },
+    {
+      "device_id": "SW-DORM-01",
+      "name": "宿舍汇聚交换机",
+      "type": "aggregation_switch",
+      "vendor": "OpenvSwitch",
+      "layer": "aggregation",
+      "management_ip": "10.0.2.1/24",
+      "dpid": "00:00:00:00:00:00:00:03",
+      "zone_id": "ZONE-DORM",
+      "area_id": "AREA-DORM-A",
+      "prometheus_labels": {
+        "device_type": "switch",
+        "building": "DORM",
+        "floor": "1F"
+      }
+    },
+    {
+      "device_id": "SW-DC-01",
+      "name": "数据中心汇聚交换机",
+      "type": "aggregation_switch",
+      "vendor": "OpenvSwitch",
+      "layer": "aggregation",
+      "management_ip": "10.0.3.1/24",
+      "dpid": "00:00:00:00:00:00:00:04",
+      "zone_id": "ZONE-DC",
+      "area_id": "AREA-DATACENTER",
+      "prometheus_labels": {
+        "device_type": "switch",
+        "building": "DC",
+        "floor": "1F"
+      }
+    },
+    {
+      "device_id": "AP-EXAM-301",
+      "name": "301考场无线AP",
+      "type": "access_point",
+      "vendor": "WiFi6",
+      "layer": "access",
+      "management_ip": "10.0.1.11/24",
+      "dpid": null,
+      "zone_id": "ZONE-TEACH",
+      "area_id": "AREA-EXAM-301",
+      "prometheus_labels": {
+        "device_type": "ap",
+        "building": "TEACH",
+        "floor": "3F"
+      }
+    },
+    {
+      "device_id": "AP-EXAM-302",
+      "name": "302考场无线AP",
+      "type": "access_point",
+      "vendor": "WiFi6",
+      "layer": "access",
+      "management_ip": "10.0.1.12/24",
+      "dpid": null,
+      "zone_id": "ZONE-TEACH",
+      "area_id": "AREA-EXAM-302",
+      "prometheus_labels": {
+        "device_type": "ap",
+        "building": "TEACH",
+        "floor": "3F"
+      }
+    },
+    {
+      "device_id": "AP-EXAM-303",
+      "name": "303考场无线AP",
+      "type": "access_point",
+      "vendor": "WiFi6",
+      "layer": "access",
+      "management_ip": "10.0.1.13/24",
+      "dpid": null,
+      "zone_id": "ZONE-TEACH",
+      "area_id": "AREA-EXAM-303",
+      "prometheus_labels": {
+        "device_type": "ap",
+        "building": "TEACH",
+        "floor": "3F"
+      }
+    },
+    {
+      "device_id": "AP-LIB-01",
+      "name": "图书馆无线AP",
+      "type": "access_point",
+      "vendor": "WiFi6",
+      "layer": "access",
+      "management_ip": "10.0.1.21/24",
+      "dpid": null,
+      "zone_id": "ZONE-TEACH",
+      "area_id": "AREA-LIBRARY",
+      "prometheus_labels": {
+        "device_type": "ap",
+        "building": "LIB",
+        "floor": "1F"
+      }
+    },
+    {
+      "device_id": "AP-DORM-A1",
+      "name": "宿舍A1无线AP",
+      "type": "access_point",
+      "vendor": "WiFi6",
+      "layer": "access",
+      "management_ip": "10.0.2.11/24",
+      "dpid": null,
+      "zone_id": "ZONE-DORM",
+      "area_id": "AREA-DORM-A",
+      "prometheus_labels": {
+        "device_type": "ap",
+        "building": "DORM",
+        "floor": "1F"
+      }
+    },
+    {
+      "device_id": "AP-DORM-A2",
+      "name": "宿舍A2无线AP",
+      "type": "access_point",
+      "vendor": "WiFi6",
+      "layer": "access",
+      "management_ip": "10.0.2.12/24",
+      "dpid": null,
+      "zone_id": "ZONE-DORM",
+      "area_id": "AREA-DORM-A",
+      "prometheus_labels": {
+        "device_type": "ap",
+        "building": "DORM",
+        "floor": "1F"
+      }
+    },
+    {
+      "device_id": "SRV-EXAM-01",
+      "name": "考试系统服务器",
+      "type": "application_server",
+      "vendor": "Linux",
+      "layer": "service",
+      "service": "exam-system",
+      "management_ip": "10.0.3.11/24",
+      "dpid": null,
+      "zone_id": "ZONE-DC",
+      "area_id": "AREA-DATACENTER",
+      "prometheus_labels": {
+        "device_type": "server",
+        "service": "exam"
+      }
+    },
+    {
+      "device_id": "SRV-AUTH-01",
+      "name": "认证服务器",
+      "type": "application_server",
+      "vendor": "Linux",
+      "layer": "service",
+      "service": "authentication",
+      "management_ip": "10.0.3.12/24",
+      "dpid": null,
+      "zone_id": "ZONE-DC",
+      "area_id": "AREA-DATACENTER",
+      "prometheus_labels": {
+        "device_type": "server",
+        "service": "auth"
+      }
+    },
+    {
+      "device_id": "SRV-GATEWAY-01",
+      "name": "出口网关",
+      "type": "gateway",
+      "vendor": "Linux",
+      "layer": "service",
+      "service": "nat-gateway",
+      "management_ip": "10.0.3.1/24",
+      "dpid": null,
+      "zone_id": "ZONE-DC",
+      "area_id": "AREA-DATACENTER",
+      "prometheus_labels": {
+        "device_type": "gateway",
+        "service": "nat"
+      }
+    }
+  ],
+  "links": [
+    {
+      "source": "OF-CORE-01",
+      "target": "SW-TEACH-01",
+      "relation": "CONNECTED_TO",
+      "bandwidth_mbps": 10000,
+      "latency_ms": 1,
+      "port_src": 1,
+      "port_tgt": 1
+    },
+    {
+      "source": "OF-CORE-01",
+      "target": "SW-DORM-01",
+      "relation": "CONNECTED_TO",
+      "bandwidth_mbps": 10000,
+      "latency_ms": 1,
+      "port_src": 2,
+      "port_tgt": 1
+    },
+    {
+      "source": "OF-CORE-01",
+      "target": "SW-DC-01",
+      "relation": "CONNECTED_TO",
+      "bandwidth_mbps": 10000,
+      "latency_ms": 1,
+      "port_src": 3,
+      "port_tgt": 1
+    },
+    {
+      "source": "RYU-CTRL-01",
+      "target": "OF-CORE-01",
+      "relation": "MANAGED_BY",
+      "bandwidth_mbps": null,
+      "latency_ms": null,
+      "port_src": null,
+      "port_tgt": null
+    },
+    {
+      "source": "SW-TEACH-01",
+      "target": "AP-EXAM-301",
+      "relation": "CONNECTED_TO",
+      "bandwidth_mbps": 1000,
+      "latency_ms": 2,
+      "port_src": 11,
+      "port_tgt": 1
+    },
+    {
+      "source": "SW-TEACH-01",
+      "target": "AP-EXAM-302",
+      "relation": "CONNECTED_TO",
+      "bandwidth_mbps": 1000,
+      "latency_ms": 2,
+      "port_src": 12,
+      "port_tgt": 1
+    },
+    {
+      "source": "SW-TEACH-01",
+      "target": "AP-EXAM-303",
+      "relation": "CONNECTED_TO",
+      "bandwidth_mbps": 1000,
+      "latency_ms": 2,
+      "port_src": 13,
+      "port_tgt": 1
+    },
+    {
+      "source": "SW-TEACH-01",
+      "target": "AP-LIB-01",
+      "relation": "CONNECTED_TO",
+      "bandwidth_mbps": 1000,
+      "latency_ms": 5,
+      "port_src": 14,
+      "port_tgt": 1
+    },
+    {
+      "source": "SW-DORM-01",
+      "target": "AP-DORM-A1",
+      "relation": "CONNECTED_TO",
+      "bandwidth_mbps": 1000,
+      "latency_ms": 2,
+      "port_src": 11,
+      "port_tgt": 1
+    },
+    {
+      "source": "SW-DORM-01",
+      "target": "AP-DORM-A2",
+      "relation": "CONNECTED_TO",
+      "bandwidth_mbps": 1000,
+      "latency_ms": 2,
+      "port_src": 12,
+      "port_tgt": 1
+    },
+    {
+      "source": "SW-DC-01",
+      "target": "SRV-EXAM-01",
+      "relation": "CONNECTED_TO",
+      "bandwidth_mbps": 10000,
+      "latency_ms": 0.5,
+      "port_src": 11,
+      "port_tgt": 1
+    },
+    {
+      "source": "SW-DC-01",
+      "target": "SRV-AUTH-01",
+      "relation": "CONNECTED_TO",
+      "bandwidth_mbps": 10000,
+      "latency_ms": 0.5,
+      "port_src": 12,
+      "port_tgt": 1
+    },
+    {
+      "source": "SW-DC-01",
+      "target": "SRV-GATEWAY-01",
+      "relation": "CONNECTED_TO",
+      "bandwidth_mbps": 10000,
+      "latency_ms": 0.5,
+      "port_src": 13,
+      "port_tgt": 1
+    },
+    {
+      "source": "AP-EXAM-301",
+      "target": "AREA-EXAM-301",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "AP-EXAM-302",
+      "target": "AREA-EXAM-302",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "AP-EXAM-303",
+      "target": "AREA-EXAM-303",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "AP-LIB-01",
+      "target": "AREA-LIBRARY",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "AP-DORM-A1",
+      "target": "AREA-DORM-A",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "AP-DORM-A2",
+      "target": "AREA-DORM-A",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "SRV-EXAM-01",
+      "target": "AREA-DATACENTER",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "SRV-AUTH-01",
+      "target": "AREA-DATACENTER",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "SRV-GATEWAY-01",
+      "target": "AREA-DATACENTER",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "SW-TEACH-01",
+      "target": "AP-EXAM-301",
+      "relation": "AFFECTS",
+      "impact": "HIGH"
+    },
+    {
+      "source": "SW-TEACH-01",
+      "target": "AP-EXAM-302",
+      "relation": "AFFECTS",
+      "impact": "HIGH"
+    },
+    {
+      "source": "SW-TEACH-01",
+      "target": "AP-EXAM-303",
+      "relation": "AFFECTS",
+      "impact": "HIGH"
+    },
+    {
+      "source": "SW-TEACH-01",
+      "target": "AP-LIB-01",
+      "relation": "AFFECTS",
+      "impact": "MEDIUM"
+    },
+    {
+      "source": "SW-DORM-01",
+      "target": "AP-DORM-A1",
+      "relation": "AFFECTS",
+      "impact": "MEDIUM"
+    },
+    {
+      "source": "SW-DORM-01",
+      "target": "AP-DORM-A2",
+      "relation": "AFFECTS",
+      "impact": "MEDIUM"
+    },
+    {
+      "source": "SW-DC-01",
+      "target": "SRV-EXAM-01",
+      "relation": "AFFECTS",
+      "impact": "CRITICAL"
+    },
+    {
+      "source": "SW-DC-01",
+      "target": "SRV-AUTH-01",
+      "relation": "AFFECTS",
+      "impact": "CRITICAL"
+    },
+    {
+      "source": "SRV-AUTH-01",
+      "target": "SRV-EXAM-01",
+      "relation": "AFFECTS",
+      "impact": "CRITICAL"
+    },
+    {
+      "source": "OF-CORE-01",
+      "target": "SW-TEACH-01",
+      "relation": "AFFECTS",
+      "impact": "CRITICAL"
+    },
+    {
+      "source": "OF-CORE-01",
+      "target": "SW-DORM-01",
+      "relation": "AFFECTS",
+      "impact": "CRITICAL"
+    },
+    {
+      "source": "OF-CORE-01",
+      "target": "SW-DC-01",
+      "relation": "AFFECTS",
+      "impact": "CRITICAL"
+    }
+  ]
+}
