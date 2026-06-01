@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CampusNet Copilot 测试台</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Microsoft YaHei", system-ui, sans-serif;
+      background: #f6f7f9;
+      color: #20242a;
+    }
+    body {
+      margin: 0;
+      padding: 24px;
+    }
+    main {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+    }
+    section {
+      background: #fff;
+      border: 1px solid #d9dee7;
+      border-radius: 8px;
+      padding: 18px;
+    }
+    h1 {
+      grid-column: 1 / -1;
+      margin: 0 0 4px;
+      font-size: 24px;
+    }
+    h2 {
+      margin: 0 0 14px;
+      font-size: 16px;
+    }
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      font-size: 13px;
+      color: #4d5867;
+    }
+    input, textarea, button {
+      box-sizing: border-box;
+      width: 100%;
+      font: inherit;
+    }
+    input, textarea {
+      border: 1px solid #cbd3df;
+      border-radius: 6px;
+      padding: 10px;
+      background: #fff;
+    }
+    textarea {
+      min-height: 132px;
+      resize: vertical;
+    }
+    button {
+      margin-top: 14px;
+      border: 0;
+      border-radius: 6px;
+      padding: 10px 12px;
+      background: #2563eb;
+      color: #fff;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: #475569;
+    }
+    button.danger {
+      background: #b42318;
+    }
+    button:disabled {
+      background: #9aa6b2;
+      cursor: not-allowed;
+    }
+    .meta {
+      color: #637083;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+    .step {
+      border-left: 4px solid #9aa6b2;
+      background: #f8fafc;
+      padding: 10px 12px;
+      border-radius: 4px;
+    }
+    .step.running { border-left-color: #2563eb; }
+    .step.waiting_approval { border-left-color: #d97706; }
+    .step.completed { border-left-color: #15803d; }
+    .step.failed { border-left-color: #b42318; }
+    .stage {
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .message {
+      margin-top: 4px;
+      color: #445064;
+      font-size: 14px;
+    }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px;
+      border-radius: 8px;
+      min-height: 220px;
+    }
+    .approval {
+      border: 1px solid #f59e0b;
+      background: #fffbeb;
+      border-radius: 8px;
+      padding: 14px;
+      margin: 14px 0;
+    }
+    .command {
+      margin: 8px 0;
+      padding: 8px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+    @media (max-width: 860px) {
+      main { grid-template-columns: 1fr; }
+      h1 { grid-column: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>CampusNet Copilot 测试台</h1>
+    <section>
+      <h2>用户询问</h2>
+      <label for="userId">用户 ID</label>
+      <input id="userId" value="u1" />
+      <label for="question">问题</label>
+      <textarea id="question">图书馆三楼 WiFi 很卡，网页打不开，帮我分析原因</textarea>
+      <button id="sendBtn">提交诊断</button>
+      <button id="stopBtn" class="secondary">停止轮询</button>
+      <p class="meta" id="taskMeta">尚未创建任务。</p>
+    </section>
+
+    <section>
+      <h2>流程状态</h2>
+      <div id="timeline" class="timeline"></div>
+      <div id="approvalBox"></div>
+    </section>
+
+    <section style="grid-column: 1 / -1;">
+      <h2>最终诊断与修复报告</h2>
+      <pre id="report">等待任务完成...</pre>
+    </section>
+  </main>
+
+  <script>
+    let currentEventId = null;
+    let timer = null;
+
+    const sendBtn = document.getElementById("sendBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const taskMeta = document.getElementById("taskMeta");
+    const timeline = document.getElementById("timeline");
+    const approvalBox = document.getElementById("approvalBox");
+    const report = document.getElementById("report");
+
+    function eventIdFromAnswer(answer) {
+      const match = answer.match(/evt-[a-f0-9]+/i);
+      return match ? match[0] : null;
+    }
+
+    function renderProgress(progress) {
+      timeline.innerHTML = "";
+      for (const item of progress) {
+        const div = document.createElement("div");
+        div.className = `step ${item.status || "running"}`;
+        div.innerHTML = `<div class="stage">${item.stage}</div><div class="message">${item.message}</div>`;
+        timeline.appendChild(div);
+      }
+    }
+
+    function renderApproval(data) {
+      approvalBox.innerHTML = "";
+      if (!data.approval_required) return;
+      const box = document.createElement("div");
+      box.className = "approval";
+      const commands = data.approval_commands || [];
+      box.innerHTML = `<strong>需要确认后才能继续执行</strong>
+        <p class="meta">以下命令被判定为中高风险。点击确认后，后端才会继续 mock SDN dry-run。</p>`;
+      for (const cmd of commands) {
+        const line = document.createElement("div");
+        line.className = "command";
+        line.textContent = cmd.command;
+        box.appendChild(line);
+      }
+      const btn = document.createElement("button");
+      btn.className = "danger";
+      btn.textContent = "确认执行并继续";
+      btn.onclick = approve;
+      box.appendChild(btn);
+      approvalBox.appendChild(box);
+    }
+
+    async function approve() {
+      if (!currentEventId) return;
+      await fetch(`/tasks/${currentEventId}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approved_by: document.getElementById("userId").value || "user" })
+      });
+      approvalBox.innerHTML = `<p class="meta">已确认，等待后端继续执行。</p>`;
+      poll();
+    }
+
+    async function poll() {
+      if (!currentEventId) return;
+      const res = await fetch(`/tasks/${currentEventId}/status`);
+      if (!res.ok) return;
+      const data = await res.json();
+      taskMeta.textContent = `任务 ID：${data.event_id}；状态：${data.status}`;
+      renderProgress(data.progress || []);
+      renderApproval(data);
+      if (data.report_ready) {
+        report.textContent = data.report_text;
+        clearInterval(timer);
+        timer = null;
+      } else {
+        report.textContent = data.approval_required
+          ? "任务已暂停，等待确认执行需审批命令。"
+          : "诊断和修复闭环处理中...";
+      }
+    }
+
+    sendBtn.onclick = async () => {
+      clearInterval(timer);
+      timeline.innerHTML = "";
+      approvalBox.innerHTML = "";
+      report.textContent = "正在创建任务...";
+      const payload = {
+        user_id: document.getElementById("userId").value || "u1",
+        question: document.getElementById("question").value
+      };
+      const res = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      currentEventId = eventIdFromAnswer(data.answer || "");
+      if (!currentEventId) {
+        taskMeta.textContent = "当前问题未创建后台诊断任务。";
+        report.textContent = data.answer || JSON.stringify(data, null, 2);
+        return;
+      }
+      taskMeta.textContent = `任务 ID：${currentEventId}`;
+      await poll();
+      timer = setInterval(poll, 1500);
+    };
+
+    stopBtn.onclick = () => {
+      clearInterval(timer);
+      timer = null;
+    };
+  </script>
+</body>
+</html>
