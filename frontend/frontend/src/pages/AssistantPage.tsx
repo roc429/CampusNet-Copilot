@@ -10,9 +10,10 @@ import {
 import { useNavigate } from 'react-router-dom'
 import assistantMascot from '../assets/小助手.svg'
 import userAvatar from '../assets/用户.svg'
-import brandLogo from '../assets/logo.png'
 import profileCenterIcon from '../assets/个人中心.svg'
+import KnowledgePanel from '../components/KnowledgePanel.tsx'
 import MonitoringDashboard from '../components/MonitoringDashboard.tsx'
+import StoreSalesDashboard from '../components/store-sales-dashboard/StoreSalesDashboard.tsx'
 import './AssistantPage.css'
 
 type Role = 'user' | 'assistant'
@@ -31,12 +32,17 @@ type ChatMessage = {
 
 type NavKey = 'ai' | 'monitor' | 'capacity' | 'knowledge' | 'report'
 
-const NAV_ITEMS: { key: NavKey; label: string; Icon: LucideIcon }[] = [
-  { key: 'ai', label: 'AI 助手', Icon: Bot },
-  { key: 'monitor', label: '监控指标', Icon: Activity },
-  { key: 'capacity', label: '预测与容量', Icon: TrendingUp },
-  { key: 'knowledge', label: '知识库', Icon: BookOpen },
-  { key: 'report', label: '报告中心', Icon: FileBarChart },
+const NAV_ITEMS: {
+  key: NavKey
+  label: string
+  Icon: LucideIcon
+  accent: 'blue' | 'green' | 'orange' | 'purple' | 'teal'
+}[] = [
+  { key: 'ai', label: 'AI 助手', Icon: Bot, accent: 'blue' },
+  { key: 'monitor', label: '监控指标', Icon: Activity, accent: 'green' },
+  { key: 'capacity', label: '预测与容量', Icon: TrendingUp, accent: 'orange' },
+  { key: 'knowledge', label: '知识库', Icon: BookOpen, accent: 'purple' },
+  { key: 'report', label: '报告中心', Icon: FileBarChart, accent: 'teal' },
 ]
 
 const WELCOME =
@@ -123,234 +129,12 @@ function streamErrorMessage(obj: Record<string, unknown>): string {
   return '模型服务返回错误'
 }
 
-const PLACEHOLDER_COPY: Record<Exclude<NavKey, 'ai' | 'monitor'>, { title: string; desc: string }> = {
-  capacity: {
-    title: '预测与容量',
-    desc: '这里将提供流量与资源趋势的预测、容量规划建议。可后续接入时序预测与历史数据。',
-  },
-  knowledge: {
-    title: '知识库',
-    desc: '这里将沉淀运维知识、故障案例与标准操作流程，支持检索与智能问答引用。',
-  },
+const PLACEHOLDER_COPY: Record<Exclude<NavKey, 'ai' | 'monitor' | 'knowledge' | 'capacity'>, { title: string; desc: string }> = {
   report: {
     title: '报告中心',
     desc: '这里将生成与导出运维报告、运行月报与专项分析。可后续对接报表模板与定时任务。',
   },
 }
-
-//贾文鹏
-type MockNode = {
-  id: string
-  label: string
-  type: string
-  x: number
-  y: number
-  properties: Record<string, string>
-}
-
-type MockEdge = {
-  source: string
-  target: string
-  relation: string
-}
-
-const MOCK_NODES: MockNode[] = [
-  {
-    id: 'AP-EXAM-302',
-    label: '302考场AP',
-    type: 'Device',
-    x: 170,
-    y: 160,
-    properties: {
-      deviceID: 'AP-EXAM-302',
-      name: '302考场AP',
-    },
-  },
-  {
-    id: 'SW-EXAM-3F',
-    label: '考试楼三层接入交换机',
-    type: 'Switch',
-    x: 430,
-    y: 160,
-    properties: {
-      deviceID: 'SW-EXAM-3F',
-      name: '考试楼三层接入交换机',
-    },
-  },
-  {
-    id: 'AREA-302',
-    label: '302考场',
-    type: 'Area',
-    x: 170,
-    y: 330,
-    properties: {
-      name: '302考场',
-    },
-  },
-]
-
-const MOCK_EDGES: MockEdge[] = [
-  {
-    source: 'AP-EXAM-302',
-    target: 'SW-EXAM-3F',
-    relation: 'CONNECTED_TO',
-  },
-  {
-    source: 'AP-EXAM-302',
-    target: 'AREA-302',
-    relation: 'LOCATED_IN',
-  },
-]
-
-function getNode(id: string) {
-  return MOCK_NODES.find((node) => node.id === id)
-}
-
-function KnowledgePanel() {
-  const [viewMode, setViewMode] = useState<'graph' | 'table' | 'raw'>('graph')
-
-  return (
-    <div className="knowledge-page">
-      <header className="knowledge-page__header">
-        <div>
-          <h1>知识库拓扑演示</h1>
-          <p>
-            当前使用模拟 Neo4j 数据，展示 Graph、Table 和 RAW 三种视图。
-          </p>
-        </div>
-
-        <div className="knowledge-tabs">
-          <button
-            type="button"
-            className={viewMode === 'graph' ? 'knowledge-tab knowledge-tab--active' : 'knowledge-tab'}
-            onClick={() => setViewMode('graph')}
-          >
-            Graph
-          </button>
-          <button
-            type="button"
-            className={viewMode === 'table' ? 'knowledge-tab knowledge-tab--active' : 'knowledge-tab'}
-            onClick={() => setViewMode('table')}
-          >
-            Table
-          </button>
-          <button
-            type="button"
-            className={viewMode === 'raw' ? 'knowledge-tab knowledge-tab--active' : 'knowledge-tab'}
-            onClick={() => setViewMode('raw')}
-          >
-            RAW
-          </button>
-        </div>
-      </header>
-
-      {viewMode === 'graph' && (
-        <section className="knowledge-card-panel">
-          <h2>Graph 视图</h2>
-
-          <svg className="knowledge-graph" viewBox="0 0 620 430" role="img">
-            {MOCK_EDGES.map((edge) => {
-              const source = getNode(edge.source)
-              const target = getNode(edge.target)
-              if (!source || !target) return null
-
-              const midX = (source.x + target.x) / 2
-              const midY = (source.y + target.y) / 2
-
-              return (
-                <g key={`${edge.source}-${edge.relation}-${edge.target}`}>
-                  <line
-                    x1={source.x}
-                    y1={source.y}
-                    x2={target.x}
-                    y2={target.y}
-                    className="knowledge-graph__edge"
-                  />
-                  <text x={midX} y={midY - 8} className="knowledge-graph__edge-label">
-                    {edge.relation}
-                  </text>
-                </g>
-              )
-            })}
-
-            {MOCK_NODES.map((node) => (
-              <g key={node.id}>
-                <circle
-                  cx={node.x}
-                  cy={node.y}
-                  r="48"
-                  className={`knowledge-graph__node knowledge-graph__node--${node.type.toLowerCase()}`}
-                />
-                <text x={node.x} y={node.y - 4} textAnchor="middle" className="knowledge-graph__node-title">
-                  {node.type}
-                </text>
-                <text x={node.x} y={node.y + 16} textAnchor="middle" className="knowledge-graph__node-label">
-                  {node.label}
-                </text>
-              </g>
-            ))}
-          </svg>
-        </section>
-      )}
-
-      {viewMode === 'table' && (
-        <section className="knowledge-card-panel">
-          <h2>Table 视图</h2>
-
-          <table className="knowledge-table">
-            <thead>
-              <tr>
-                <th>Source</th>
-                <th>Relation</th>
-                <th>Target</th>
-              </tr>
-            </thead>
-            <tbody>
-              {MOCK_EDGES.map((edge) => {
-                const source = getNode(edge.source)
-                const target = getNode(edge.target)
-
-                return (
-                  <tr key={`${edge.source}-${edge.relation}-${edge.target}`}>
-                    <td>{source?.label ?? edge.source}</td>
-                    <td>{edge.relation}</td>
-                    <td>{target?.label ?? edge.target}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </section>
-      )}
-
-      {viewMode === 'raw' && (
-        <section className="knowledge-card-panel">
-          <h2>RAW 视图</h2>
-
-          <pre className="knowledge-raw">
-{JSON.stringify(
-  {
-    nodes: MOCK_NODES,
-    relationships: MOCK_EDGES,
-    cypher: [
-      'MERGE (ap:Device {deviceID: "AP-EXAM-302", name: "302考场AP"})',
-      'MERGE (sw:Switch {deviceID: "SW-EXAM-3F", name: "考试楼三层接入交换机"})',
-      'MERGE (area:Area {name: "302考场"})',
-      'MERGE (ap)-[:CONNECTED_TO]->(sw)',
-      'MERGE (ap)-[:LOCATED_IN]->(area)',
-    ],
-  },
-  null,
-  2,
-)}
-          </pre>
-        </section>
-      )}
-    </div>
-  )
-}
-//
-
 
 function AssistantPage() {
   const navigate = useNavigate()
@@ -666,23 +450,25 @@ function AssistantPage() {
   return (
     <div className={`assistant-app ${sidebarCollapsed ? 'assistant-app--collapsed' : ''}`}>
       <aside className="assistant-sidebar">
-        <div className="assistant-sidebar__brand">
-          <span className="assistant-sidebar__brand-icon" aria-hidden="true">
+        <div className="assistant-sidebar__profile">
+          <div className="assistant-sidebar__profile-bg" aria-hidden="true" />
+          <div className="assistant-sidebar__avatar-wrap">
             <img
-              src={brandLogo}
+              src={assistantMascot}
               alt=""
-              className="assistant-sidebar__brand-logo"
+              className="assistant-sidebar__avatar"
               draggable={false}
             />
-          </span>
-          <span className="assistant-sidebar__brand-text">智网学伴</span>
+          </div>
+          <p className="assistant-sidebar__slogan">智网相伴，畅通校园！</p>
         </div>
 
         <nav className="assistant-sidebar__nav" aria-label="主导航">
-          {NAV_ITEMS.map(({ key, label, Icon }) => (
+          {NAV_ITEMS.map(({ key, label, Icon, accent }) => (
             <button
               key={key}
               type="button"
+              data-accent={accent}
               className={
                 activeNav === key
                   ? 'assistant-nav-item assistant-nav-item--active'
@@ -691,7 +477,7 @@ function AssistantPage() {
               onClick={() => setActiveNav(key)}
             >
               <span className="assistant-nav-item__icon-wrap" aria-hidden="true">
-                <Icon className="assistant-nav-item__svg" size={18} strokeWidth={1.65} />
+                <Icon className="assistant-nav-item__svg" size={22} strokeWidth={1.85} />
               </span>
               <span className="assistant-nav-item__label">{label}</span>
             </button>
@@ -731,7 +517,9 @@ function AssistantPage() {
         </div>
       </aside>
 
-      <div className={`assistant-main ${activeNav === 'ai' ? 'assistant-main--ai' : ''}`}>
+      <div
+        className={`assistant-main ${activeNav === 'ai' ? 'assistant-main--ai' : ''} ${activeNav === 'monitor' ? 'assistant-main--monitor' : ''} ${activeNav === 'capacity' ? 'assistant-main--capacity' : ''}`}
+      >
         {activeNav === 'ai' ? (
           <>
             <header className="assistant-main__header">
@@ -878,6 +666,8 @@ function AssistantPage() {
           </>
         ) : activeNav === 'monitor' ? (
           <MonitoringDashboard />
+        ) : activeNav === 'capacity' ? (
+          <StoreSalesDashboard />
         ) : activeNav === 'knowledge' ? (
           <KnowledgePanel />
         ) : (

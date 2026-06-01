@@ -1,0 +1,20 @@
+/** 日不落 AI 平台风格色板 — 仅配色，不改布局 */
+export const MS_THEME = {
+  primary: '#1890FF',
+  primaryDark: '#0056D2',
+  primaryLight: '#40A9FF',
+  accent: '#FFB800',
+  teal: '#26A69A',
+  tealLight: '#4DB6AC',
+  error: '#FF5252',
+  bg: '#F0E8FF',
+  text: '#333333',
+  textHeading: '#002140',
+  textSecondary: '#666666',
+  textMuted: '#8C8C8C',
+  borderPrimary: '#1890FF',
+  borderAccent: '#4DB6AC',
+  borderSoft: 'rgba(24, 144, 255, 0.15)',
+  gridLine: 'rgba(0, 0, 0, 0.06)',
+  axisLine: 'rgba(0, 0, 0, 0.1)',
+} as const

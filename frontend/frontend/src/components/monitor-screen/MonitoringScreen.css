@@ -1,0 +1,1241 @@
+/* 监控大屏 — 移植自 IofTV-Screen，适配智网学伴主区域 */
+
+.monitor-page {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #F0E8FF;
+  align-self: stretch;
+}
+
+.ms-scale-host {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #F0E8FF;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ms-scale-host--align-bottom {
+  align-items: flex-end;
+}
+
+.ms-scale-host--align-top {
+  align-items: flex-start;
+}
+
+.ms-scale-inner {
+  flex-shrink: 0;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.ms-root {
+  width: 1920px;
+  height: 100%;
+  overflow: hidden;
+  color: #333333;
+  background-color: #ffffff;
+  box-sizing: border-box;
+  padding: 24px 12px 8px;
+}
+
+.ms-host-body {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+/* —— 顶栏（与 IofTV-Screen 原版一致） —— */
+.ms-title-wrap {
+  height: 60px;
+  background-size: cover;
+  background-position: center center;
+  position: relative;
+  margin-top: 6px;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.ms-title-wrap__juxing {
+  position: absolute;
+  top: -2px;
+  width: 140px;
+  height: 6px;
+}
+
+.ms-title-wrap__juxing--left {
+  left: 11%;
+}
+
+.ms-title-wrap__juxing--right {
+  right: 11%;
+  transform: rotate(180deg);
+}
+
+.ms-title-wrap__guang {
+  position: absolute;
+  bottom: -26px;
+  width: 100%;
+  height: 56px;
+  background-position: 80px center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+.ms-title {
+  text-align: center;
+  height: 60px;
+  line-height: 46px;
+  margin: 0;
+}
+
+.ms-title__text {
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: 6px;
+  background: linear-gradient(92deg, #0056D2 0%, #1890FF 50%, #40A9FF 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.ms-timers {
+  position: absolute;
+  right: 0;
+  top: 30px;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #666666;
+}
+
+.ms-timers__settings {
+  border: none;
+  background: transparent;
+  color: #1890FF;
+  cursor: pointer;
+  display: flex;
+  padding: 4px;
+}
+
+/* —— 三栏布局：flex 按比例分配高度，随视口动态铺满 —— */
+.ms-contents {
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  box-sizing: border-box;
+  gap: 6px;
+  padding: 12px 6px 4px;
+  position: relative;
+  z-index: 1;
+}
+
+.ms-col--left,
+.ms-col--right {
+  width: 540px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+}
+
+.ms-col--center {
+  width: 720px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+}
+
+.ms-lr-item {
+  flex: 266 1 0;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.ms-lr-item--bottom {
+  flex: 380 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ms-lr-item--bottom > .ms-item-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* 右上「核心指标」：仅内部撑满，不改变右列 flex 比例（不影响右中/右下高度） */
+.ms-col--right > .ms-lr-item:first-child .ms-center-kpi {
+  height: 100%;
+  flex: none;
+}
+
+.ms-col--right > .ms-lr-item:first-child .ms-center-kpi__wrap {
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px 10px !important;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.ms-col--right > .ms-lr-item:first-child .ms-kpi-grid {
+  flex: none;
+  width: 93%;
+  height: 93%;
+  max-width: none;
+  gap: 15px;
+}
+
+/* 原版 ItemWrap 内联 padding: 0 10px 16px 10px */
+.ms-lr-item--pad {
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+.ms-lr-item--bottom.ms-lr-item--pad {
+  padding: 0 10px 0;
+}
+
+.ms-center-bottom {
+  flex: 380 1 0;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* —— dv-border-box-13（与 DataV 一致） —— */
+.dv-border-box-13 {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.dv-border-box-13 .dv-border-svg-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.dv-border-box-13 .border-box-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 6px 16px 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #ffffff;
+  z-index: 1;
+}
+
+.ms-lr-item--bottom .border-box-content {
+  padding-bottom: 12px;
+}
+
+.lr_titles {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.ms-item-wrap {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.item_title {
+  height: 38px;
+  line-height: 38px;
+  width: 100%;
+  color: #1890FF;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.item_title__zuo,
+.item_title__you {
+  width: 58px;
+  height: 14px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+.item_title__you {
+  transform: rotate(180deg);
+}
+
+.title-inner {
+  font-weight: 900;
+  letter-spacing: 2px;
+  background: linear-gradient(92deg, #0056D2 0%, #1890FF 50%, #40A9FF 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.item_title_content {
+  flex: 1;
+  min-height: 0;
+  height: calc(100% - 38px);
+  max-height: calc(100% - 38px);
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.item_title_content_def {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* —— 图表容器 —— */
+.ms-chart-fill {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.ms-chart-fill--offset {
+  margin-top: -8px;
+}
+
+/* —— 设备总览数字环 —— */
+.ms-device-overview {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  align-items: center;
+}
+
+.ms-device-overview li {
+  flex: 1;
+  text-align: center;
+}
+
+.ms-device-overview p {
+  margin: 0;
+  font-size: 16px;
+  height: 16px;
+}
+
+.ms-device-overview--triple .ms-digital-flop {
+  width: 96px;
+  height: 96px;
+  margin: 32px auto 18px;
+}
+
+.ms-device-overview--triple .ms-digital-flop__num {
+  font-size: 24px;
+}
+
+.ms-device-overview--triple p {
+  font-size: 14px;
+}
+
+/* 左中「分区负载对比」：大标题 + 大环图 */
+.ms-partition-panel .item_title {
+  height: 48px;
+  line-height: 48px;
+}
+
+.ms-partition-panel .title-inner {
+  font-size: 28px;
+  letter-spacing: 4px;
+}
+
+.ms-partition-panel .item_title__zuo,
+.ms-partition-panel .item_title__you {
+  width: 68px;
+  height: 16px;
+}
+
+.ms-partition-panel .item_title_content {
+  height: calc(100% - 48px);
+  max-height: calc(100% - 48px);
+}
+
+.ms-partition-panel .ms-device-overview--triple .ms-digital-flop {
+  width: 148px;
+  height: 148px;
+  margin: 8px auto 10px;
+  padding: 0 14px;
+  box-sizing: border-box;
+}
+
+.ms-partition-panel .ms-device-overview--triple .ms-digital-flop__num {
+  font-size: 23px;
+  line-height: 1;
+  letter-spacing: -0.3px;
+  max-width: 100%;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ms-partition-panel .ms-device-overview--triple p {
+  font-size: 16px;
+  height: auto;
+}
+
+/* 右中「丢包率与健康」、右下「规则告警表」：大标题 */
+.ms-loss-health-panel .item_title,
+.ms-alarm-list-panel .item_title {
+  height: 48px;
+  line-height: 48px;
+}
+
+.ms-loss-health-panel .title-inner,
+.ms-alarm-list-panel .title-inner {
+  font-size: 28px;
+  letter-spacing: 4px;
+}
+
+.ms-loss-health-panel .item_title__zuo,
+.ms-loss-health-panel .item_title__you,
+.ms-alarm-list-panel .item_title__zuo,
+.ms-alarm-list-panel .item_title__you {
+  width: 68px;
+  height: 16px;
+}
+
+.ms-loss-health-panel .item_title_content,
+.ms-alarm-list-panel .item_title_content {
+  height: calc(100% - 48px);
+  max-height: calc(100% - 48px);
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.ms-alarm-list-panel .border-box-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ms-alarm-list-panel__body {
+  flex: 1 1 0;
+  min-height: 0;
+  height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 右下告警表：CSS 无缝滚动（不依赖 JS 测量，适配大屏 scale） */
+.ms-alarm-scroll-viewport {
+  flex: 1 1 0;
+  min-height: 0;
+  height: 0;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.ms-alarm-scroll-track {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  will-change: transform;
+}
+
+.ms-alarm-scroll-block {
+  flex-shrink: 0;
+}
+
+/* 右下「规则告警表」：内容字号 */
+.ms-alarm-list-panel .ms-list-item {
+  font-size: 16px;
+  padding: 10px 12px;
+}
+
+.ms-alarm-list-panel .ms-list-item__order {
+  font-size: 17px;
+}
+
+.ms-alarm-list-panel .ms-list-item__label {
+  font-size: 14px;
+}
+
+.ms-alarm-list-panel .ms-list-item__primary {
+  font-size: 17px;
+}
+
+.ms-alarm-list-panel .ms-list-item__sub {
+  font-size: 14px;
+}
+
+.ms-alarm-list-panel .ms-alarm-level {
+  font-size: 16px;
+}
+
+.ms-digital-flop {
+  width: 100px;
+  height: 100px;
+  margin: 36px auto 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.ms-digital-flop__num {
+  font-size: 28px;
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
+}
+
+.ms-ring--lan {
+  background-image: url('../../assets/monitor-screen/img/left_top_lan.png');
+}
+
+.ms-ring--lv {
+  background-image: url('../../assets/monitor-screen/img/left_top_lv.png');
+}
+
+.ms-ring--huang {
+  background-image: url('../../assets/monitor-screen/img/left_top_huang.png');
+}
+
+.ms-ring--hong {
+  background-image: url('../../assets/monitor-screen/img/left_top_hong.png');
+}
+
+/* —— 中心 KPI 数字卡（2×2 大框内） —— */
+.ms-center-kpi {
+  flex: 400 1 0;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.ms-ap-panel .item_title {
+  height: 48px;
+  line-height: 48px;
+}
+
+.ms-ap-panel .title-inner {
+  font-size: 28px;
+  letter-spacing: 4px;
+}
+
+.ms-ap-panel .item_title__zuo,
+.ms-ap-panel .item_title__you {
+  width: 68px;
+  height: 16px;
+}
+
+.ms-ap-panel .item_title_content {
+  height: calc(100% - 48px);
+  max-height: calc(100% - 48px);
+}
+
+.ms-port-load-panel .item_title {
+  height: 44px;
+  line-height: 44px;
+}
+
+.ms-port-load-panel .title-inner {
+  font-size: 24px;
+  letter-spacing: 3px;
+}
+
+.ms-port-load-panel .item_title__zuo,
+.ms-port-load-panel .item_title__you {
+  width: 62px;
+  height: 15px;
+}
+
+.ms-port-load-panel .item_title_content {
+  height: calc(100% - 44px);
+  max-height: calc(100% - 44px);
+  padding-bottom: 6px;
+  box-sizing: border-box;
+}
+
+.ms-port-load-panel .ms-chart-fill {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* 左下「吞吐量时序图」：大标题 + 坐标轴字号 */
+.ms-throughput-panel .item_title {
+  height: 44px;
+  line-height: 44px;
+}
+
+.ms-throughput-panel .title-inner {
+  font-size: 24px;
+  letter-spacing: 3px;
+}
+
+.ms-throughput-panel .item_title__zuo,
+.ms-throughput-panel .item_title__you {
+  width: 62px;
+  height: 15px;
+}
+
+.ms-throughput-panel .item_title_content {
+  height: calc(100% - 44px);
+  max-height: calc(100% - 44px);
+  padding-bottom: 6px;
+  box-sizing: border-box;
+}
+
+.ms-throughput-panel .ms-chart-fill {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.ms-port-detail-panel .item_title {
+  height: 48px;
+  line-height: 48px;
+}
+
+.ms-port-detail-panel .title-inner {
+  font-size: 28px;
+  letter-spacing: 4px;
+}
+
+.ms-port-detail-panel .item_title__zuo,
+.ms-port-detail-panel .item_title__you {
+  width: 68px;
+  height: 16px;
+}
+
+.ms-port-detail-panel .item_title_content {
+  height: calc(100% - 48px);
+  max-height: calc(100% - 48px);
+}
+
+.ms-center-kpi__panel .item_title {
+  height: 52px;
+  line-height: 52px;
+  padding-top: 6px;
+  box-sizing: border-box;
+}
+
+.ms-center-kpi__panel .title-inner {
+  font-size: 28px;
+  letter-spacing: 4px;
+}
+
+.ms-center-kpi__panel .item_title_content {
+  height: calc(100% - 52px);
+  max-height: calc(100% - 52px);
+}
+
+.ms-center-kpi__wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 16px 8px !important;
+}
+
+.ms-center-kpi__error {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  font-size: 12px;
+  color: #FF5252;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 2px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.ms-kpi-grid {
+  flex: none;
+  width: 84%;
+  height: 84%;
+  max-width: 540px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  box-sizing: border-box;
+}
+
+.ms-stat-card {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 2px solid rgba(24, 144, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.ms-stat-card--orange {
+  border-color: #FFB800;
+  box-shadow: 0 2px 10px rgba(255, 184, 0, 0.12);
+}
+
+.ms-stat-card--blue {
+  border-color: #1890FF;
+  box-shadow: 0 2px 10px rgba(24, 144, 255, 0.12);
+}
+
+.ms-stat-card--teal {
+  border-color: #26A69A;
+  box-shadow: 0 2px 10px rgba(38, 166, 154, 0.12);
+}
+
+.ms-stat-card--red {
+  border-color: #FF5252;
+  box-shadow: 0 2px 10px rgba(255, 82, 82, 0.12);
+}
+
+.ms-stat-card__inner {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+}
+
+.ms-stat-card__icon {
+  flex-shrink: 0;
+  width: 26%;
+  max-width: 56px;
+  aspect-ratio: 1;
+  height: auto;
+  align-self: center;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ms-stat-card__icon svg {
+  width: 62%;
+  height: 62%;
+}
+
+.ms-stat-card__icon--blue {
+  background: rgba(24, 144, 255, 0.1);
+  color: #1890FF;
+}
+
+.ms-stat-card__icon--teal {
+  background: rgba(38, 166, 154, 0.1);
+  color: #26A69A;
+}
+
+.ms-stat-card__icon--orange {
+  background: rgba(255, 184, 0, 0.12);
+  color: #FFB800;
+}
+
+.ms-stat-card__icon--red {
+  background: rgba(255, 82, 82, 0.1);
+  color: #FF5252;
+}
+
+.ms-stat-card__content {
+  min-width: 0;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.ms-stat-card__title {
+  font-size: clamp(11px, 0.9vw, 14px);
+  font-weight: 600;
+  color: #8C8C8C;
+  line-height: 1.2;
+}
+
+.ms-stat-card__subtitle {
+  font-size: clamp(13px, 1vw, 16px);
+  font-weight: 700;
+  color: #333333;
+  line-height: 1.2;
+  margin-bottom: 0;
+}
+
+.ms-stat-card__metric {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ms-stat-card__value {
+  font-size: clamp(18px, 1.65vw, 28px);
+  font-weight: 800;
+  line-height: 1.05;
+  color: #002140;
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-stat-card__unit {
+  font-size: clamp(11px, 0.82vw, 13px);
+  font-weight: 500;
+  color: #8C8C8C;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.ms-stat-card__hint {
+  margin-top: 0;
+  font-size: 10px;
+  line-height: 1.15;
+  color: #8C8C8C;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ms-stat-card:has(.ms-stat-card__hint) .ms-stat-card__content {
+  gap: 2px;
+}
+
+.ms-stat-card:has(.ms-stat-card__hint) .ms-stat-card__value {
+  font-size: clamp(17px, 1.5vw, 26px);
+}
+
+/* —— 滚动列表 —— */
+.ms-list-scroll {
+  overflow: hidden;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.ms-list-scroll--tall {
+  flex: 1;
+  min-height: 0;
+}
+
+.ms-seamless {
+  overflow: hidden;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.ms-seamless__track {
+  will-change: transform;
+}
+
+.ms-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  font-size: 14px;
+  color: #333333;
+}
+
+.ms-list-item__order {
+  margin: 0 16px 0 -8px;
+  color: #1890FF;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.ms-list-item__body {
+  position: relative;
+  width: 380px;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.ms-list-item__body--wide {
+  width: 400px;
+}
+
+.ms-list-item__line {
+  position: absolute;
+  height: 2px;
+  width: 104%;
+  bottom: -10px;
+  left: -2%;
+  background-image: url('../../assets/monitor-screen/img/zuo_xuxian.png');
+  background-size: cover;
+}
+
+.ms-list-item__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ms-list-item__info {
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.ms-list-item__info--full {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.ms-list-item__label {
+  font-size: 12px;
+  color: #666666;
+  flex-shrink: 0;
+}
+
+.ms-list-item__primary {
+  color: #1890FF;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ms-list-item__gateway {
+  color: #1890ff;
+  font-weight: 900;
+  width: 80px;
+}
+
+.ms-list-item__sub {
+  font-size: 12px;
+  color: #333333;
+}
+
+.ms-list-item__status {
+  width: 36px;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.ms-list-item__status--on {
+  color: #26A69A;
+}
+
+.ms-list-item__status--off {
+  color: #FF5252;
+}
+
+.ms-list-item__warn {
+  color: #FFB800;
+  font-size: 15px;
+}
+
+/* —— 胶囊排名图 —— */
+.ms-capsule-chart {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  padding: 8px 0;
+}
+
+.ms-capsule-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #333333;
+}
+
+.ms-capsule-row__rank {
+  width: 20px;
+  color: #1890FF;
+  font-weight: 700;
+}
+
+.ms-capsule-row__name {
+  width: 72px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ms-capsule-row__bar-wrap {
+  flex: 1;
+  height: 10px;
+  background: rgba(24, 144, 255, 0.08);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.ms-capsule-row__bar {
+  height: 100%;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #0056D2 0%, #1890FF 100%);
+  box-shadow: 0 0 8px rgba(24, 144, 255, 0.35);
+  transition: width 0.6s ease;
+}
+
+.ms-capsule-row__value {
+  width: 56px;
+  text-align: right;
+  color: #1890FF;
+}
+
+/* —— 12 路 AP 状态网格 —— */
+.ms-ap-grid {
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  grid-template-rows: repeat(3, auto);
+  gap: 12px 16px;
+  padding: 10px 16px;
+  box-sizing: border-box;
+  align-content: center;
+  justify-content: center;
+}
+
+.ms-ap-card {
+  width: 148px;
+  height: 124px;
+  max-width: 148px;
+  max-height: 124px;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(24, 144, 255, 0.15);
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px 6px;
+  box-sizing: border-box;
+}
+
+.ms-ap-card--ok {
+  border-color: #26A69A;
+}
+
+.ms-ap-card--mid {
+  border-color: #FFB800;
+}
+
+.ms-ap-card--high {
+  border-color: #FF5252;
+}
+
+.ms-ap-card--off {
+  border-color: rgba(138, 160, 181, 0.35);
+  background: #f8fafc;
+}
+
+.ms-ap-card__id {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333333;
+  line-height: 1.1;
+}
+
+.ms-ap-card__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.ms-ap-card__dot--ok {
+  background: #26A69A;
+  box-shadow: 0 0 6px rgba(38, 166, 154, 0.5);
+}
+
+.ms-ap-card__dot--mid {
+  background: #FFB800;
+  box-shadow: 0 0 6px rgba(255, 184, 0, 0.5);
+}
+
+.ms-ap-card__dot--high {
+  background: #FF5252;
+  box-shadow: 0 0 6px rgba(255, 82, 82, 0.5);
+}
+
+.ms-ap-card__dot--off {
+  background: #c0cad4;
+}
+
+.ms-ap-card__status {
+  font-size: 14px;
+  color: #8C8C8C;
+  line-height: 1.1;
+}
+
+.ms-ap-card__role {
+  font-size: 13px;
+  color: #8C8C8C;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.ms-ap-card__metric {
+  font-size: 22px;
+  font-weight: 800;
+  color: #002140;
+  line-height: 1.1;
+}
+
+.ms-ap-card__sub {
+  font-size: 13px;
+  color: #8C8C8C;
+  line-height: 1.1;
+}
+
+/* —— 数据表格 —— */
+.ms-data-table-wrap {
+  height: 100%;
+  overflow: auto;
+  padding: 2px 4px;
+  box-sizing: border-box;
+}
+
+.ms-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+  color: #333333;
+}
+
+.ms-data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #E6F4FF;
+  color: #1890FF;
+  font-weight: 700;
+  font-size: 17px;
+  padding: 10px 8px;
+  text-align: left;
+  border-bottom: 1px solid rgba(24, 144, 255, 0.15);
+}
+
+.ms-data-table tbody td {
+  padding: 10px 8px;
+  border-bottom: 1px solid rgba(24, 144, 255, 0.08);
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.ms-data-table tbody tr:nth-child(even) td {
+  background: rgba(24, 144, 255, 0.03);
+}
+
+.ms-data-table__status {
+  font-weight: 700;
+}
+
+.ms-data-table__status--up {
+  color: #26A69A;
+}
+
+.ms-data-table__status--down {
+  color: #8C8C8C;
+}
+
+.ms-alarm-level {
+  font-weight: 700;
+}
+
+.ms-alarm-level--critical {
+  color: #FF5252;
+}
+
+.ms-alarm-level--warn {
+  color: #FFB800;
+}
+
+.ms-alarm-level--info {
+  color: #1890FF;
+}
+
+.ms-partition-panel .ms-ring--lan {
+  filter: hue-rotate(-12deg) saturate(0.88);
+}
+
+.ms-partition-panel .ms-ring--lv {
+  filter: hue-rotate(-28deg) saturate(0.82);
+}
+
+.ms-partition-panel .ms-ring--huang {
+  filter: hue-rotate(6deg) saturate(0.92) brightness(1.04);
+}
+
+@keyframes ms-rotating {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ms-ring--lan::before,
+.ms-ring--lv::before,
+.ms-ring--huang::before,
+.ms-ring--hong::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  animation: ms-rotating 14s linear infinite;
+}
