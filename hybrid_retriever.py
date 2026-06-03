@@ -136,7 +136,7 @@ class HybridGraphRAG:
                         neighborhood[name] = hops
             logging.info(f'🔍 拓扑邻域命中 {len(neighborhood)} 个设备 (≤{max_hops}跳)')
         except Exception as e:
-            logging.error(f'拓扑邻域查询出错: {e}')
+            logging.warning(f'拓扑邻域查询失败: {e}')
         return neighborhood
 
     def _compute_topology_score(self, matched_devices, topology_neighborhood, device_id):
@@ -165,77 +165,87 @@ class HybridGraphRAG:
                     candidate_score = -0.3
                 candidate_hops = hops
             else:
-                # 是已知设备但不在 3 跳邻域内 → 罚分
                 candidate_score = -0.3
-                candidate_hops = 99
+                candidate_hops = None
 
             if best_score is None or candidate_score > best_score:
                 best_score = candidate_score
                 best_hops = candidate_hops
                 best_device = dev
 
-        best_hops = 0 if best_device == device_id else best_hops
         return best_score, best_hops, matched_devices
 
-    def _parse_topology_chain(self, content):
-        import re
-        m = re.search(r'(\S+)\s+--\[(\w+)\]-+>\s+\[\S+\]\s+(\S+)', content)
-        if m:
-            return {"source": m.group(1), "relation": m.group(2), "target": m.group(3)}
-        return None
-
-    def _build_snapshot(self, topology_chain, device_id):
-        if not topology_chain:
-            return "设备 " + device_id + " 未找到邻域拓扑链路。"
-        parts = []
-        for link in topology_chain:
-            parts.append(link["source"] + " 通过 " + link["relation"] + " 关联到 " + link["target"])
-        return "设备 " + device_id + " 的拓扑邻域：" + "；".join(parts) + "。"
-
-
-    def retrieve_from_milvus(self, query, top_k=3):
+    def retrieve_from_milvus(self, query, top_k=5):
+        """从 Milvus 检索 top_k 条语义知识。"""
+        collection = self.collection_name
         logging.info(f"Milvus 检索: 正在查找 '{query}' 相关的语义经验...")
-        query_vector = self.embed_model.encode(query).tolist()
         try:
+            query_vector = self.embed_model.encode([query]).tolist()
             results = self.milvus_client.search(
-                collection_name=self.collection_name,
-                data=[query_vector],
+                collection_name=collection,
+                data=query_vector,
                 limit=top_k,
-                output_fields=['text']
+                output_fields=["text"],
             )
-            milvus_context = [hit['entity']['text'] for hits in results for hit in hits]
-            logging.info(f'Milvus 命中 {len(milvus_context)} 条语义记录。')
-            return [{"source": "milvus", "content": t} for t in milvus_context]
+            entries = []
+            for hits in results:
+                for hit in hits:
+                    entries.append({
+                        "content": hit.get("entity", {}).get("text", hit.get("text", "")),
+                        "source": "milvus",
+                        "score": hit.get("distance", 0),
+                    })
+            logging.info(f"Milvus 命中 {len(entries)} 条语义记录。")
+            return entries
         except Exception as e:
-            logging.error(f'Milvus 检索出错: {e}')
+            logging.warning(f"Milvus 检索失败: {e}")
             return []
 
     def retrieve_from_neo4j(self, device_id):
+        """从 Neo4j 检索设备的多跳拓扑路径。"""
         logging.info(f"Neo4j 检索: 正在查找设备 '{device_id}' 的多跳物理拓扑...")
-        cypher_query = """
-        MATCH (start {name: $device_id})-[r]-(connected_node)
-        RETURN start.name AS Source, labels(start)[0] AS StartLabel,
-               type(r) AS Relation,
-               connected_node.name AS Target, labels(connected_node)[0] AS TargetLabel
+        cypher = """
+        MATCH path = (start {name: $device_id})-[r*1..3]-(n)
+        WHERE n.name IS NOT NULL
+        UNWIND relationships(path) AS rel
+        WITH DISTINCT startNode(rel) AS a, rel, endNode(rel) AS b
+        RETURN DISTINCT
+            labels(a)[0] + ' ' + a.name + ' --[' + type(rel) + ']--> ' +
+            labels(b)[0] + ' ' + b.name AS chain
         LIMIT 10
         """
-        neo4j_context = []
         try:
             with self.neo4j_driver.session() as session:
-                result = session.run(cypher_query, device_id=device_id)
+                result = session.run(cypher, device_id=device_id)
+                entries = []
                 for record in result:
-                    src = record["Source"] or "(unnamed)"
-                    sl  = record["StartLabel"] or ""
-                    rel = record["Relation"] or ""
-                    tgt = record["Target"] or "(unnamed)"
-                    tl  = record["TargetLabel"] or ""
-                    path_desc = f"拓扑路径: [{sl}] {src} --[{rel}]--> [{tl}] {tgt}"
-                    neo4j_context.append({"source": "neo4j", "content": path_desc})
-            logging.info(f'Neo4j 命中 {len(neo4j_context)} 条拓扑链路。')
-            return neo4j_context
+                    entries.append({
+                        "content": "拓扑路径: " + record["chain"],
+                        "source": "neo4j",
+                        "score": 0,
+                    })
+            logging.info(f"Neo4j 命中 {len(entries)} 条拓扑链路。")
+            return entries
         except Exception as e:
-            logging.error(f'Neo4j 检索出错: {e}')
+            logging.warning(f"Neo4j 检索失败: {e}")
             return []
+
+    def _parse_topology_chain(self, content):
+        """解析拓扑路径文本，提取设备列表。"""
+        import re
+        devices = re.findall(r'\]\s+(\S+)\s+--', content)
+        if not devices:
+            devices = re.findall(r'--\[.*?\]-->\s+\[.*?\]\s+(\S+)', content)
+        return devices if devices else None
+
+    def _build_snapshot(self, topology_chain, device_id):
+        """生成拓扑链路摘要。"""
+        if not topology_chain:
+            return f"设备 {device_id} 周边未检索到拓扑链路。"
+        lines = []
+        for i, chain in enumerate(topology_chain, 1):
+            lines.append(f"链路{i}: {' → '.join(chain)}")
+        return f"设备 {device_id} 周边拓扑 (共{len(topology_chain)}条):\n" + "\n".join(lines)
 
     def rerank_and_filter(self, query, candidates, device_id=None):
         """重排序 + 可选拓扑约束抗幻觉过滤。
@@ -283,6 +293,13 @@ class HybridGraphRAG:
                     topology_score, topology_hops, matched_devices = self._compute_topology_score(
                         matched_devices, topology_neighborhood, device_id
                     )
+                    # ── 拓扑硬过滤：负分证据直接排除 ──
+                    if topology_score < -0.1:
+                        logging.info(
+                            f'[Topo-Filter] 排除拓扑幻觉: matched={matched_devices} '
+                            f'score={rerank_score:.2f} topo={topology_score:.2f}'
+                        )
+                        continue
                     if topology_score != 0:
                         direction = '↑ 加分' if topology_score > 0 else '↓ 降权'
                         logging.debug(
@@ -352,8 +369,8 @@ class HybridGraphRAG:
         neo4j_candidates = [c for c in unique_candidates if c["source"] == "neo4j"]
         milvus_candidates = [c for c in unique_candidates if c["source"] == "milvus"]
 
-        # Milvus 走 reranker + 拓扑验证
-        raw = self.rerank_and_filter(query, milvus_candidates, device_id=device_id)
+        # 全部候选参与 rerank + 拓扑过滤 (修复: unique_candidates 替代 milvus_candidates)
+        raw = self.rerank_and_filter(query, unique_candidates, device_id=device_id)
 
         # Neo4j 拓扑链路直接输出，不经过语义 reranker
         topology_chain = []
@@ -362,7 +379,7 @@ class HybridGraphRAG:
             if chain:
                 topology_chain.append(chain)
 
-        # Milvus 结果拆分
+        # 结果拆分
         evidence = raw.get("evidence", [])
         semantic_hits = []
         filtered_out = []
@@ -376,6 +393,8 @@ class HybridGraphRAG:
         evidence_snapshot = self._build_snapshot(topology_chain, device_id)
 
         return {
+            "evidence": evidence,
+            "context": raw.get("context", ""),
             "evidence_snapshot": evidence_snapshot,
             "topology_chain": topology_chain,
             "semantic_hits": semantic_hits,
