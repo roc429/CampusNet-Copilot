@@ -1,0 +1,65 @@
+{
+  "_description": "Mininet dpid <-> topology device_id complete mapping",
+  "devices": {
+    "AP-EXAM-301": {
+      "dpid": 5,
+      "role": "teaching_ap",
+      "port": 1,
+      "port_bw_mbps": 100
+    },
+    "AP-EXAM-302": {
+      "dpid": 6,
+      "role": "teaching_ap",
+      "port": 1,
+      "port_bw_mbps": 100
+    },
+    "AP-EXAM-303": {
+      "dpid": 7,
+      "role": "teaching_ap",
+      "port": 1,
+      "port_bw_mbps": 100
+    },
+    "AP-LIB-01": {
+      "dpid": 8,
+      "role": "teaching_ap",
+      "port": 1,
+      "port_bw_mbps": 100
+    },
+    "AP-DORM-A1": {
+      "dpid": 9,
+      "role": "dorm_ap",
+      "port": 1,
+      "port_bw_mbps": 100
+    },
+    "AP-DORM-A2": {
+      "dpid": 10,
+      "role": "dorm_ap",
+      "port": 1,
+      "port_bw_mbps": 100
+    },
+    "SW-TEACH-01": {
+      "dpid": 13,
+      "role": "agg_switch",
+      "port": 1,
+      "port_bw_mbps": 1000
+    },
+    "SW-DORM-01": {
+      "dpid": 14,
+      "role": "agg_switch",
+      "port": 1,
+      "port_bw_mbps": 1000
+    },
+    "SW-DC-01": {
+      "dpid": 15,
+      "role": "agg_switch",
+      "port": 1,
+      "port_bw_mbps": 1000
+    },
+    "OF-CORE-01": {
+      "dpid": 16,
+      "role": "core_switch",
+      "port": 1,
+      "port_bw_mbps": 10000
+    }
+  }
+}

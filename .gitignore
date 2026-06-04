@@ -71,3 +71,4 @@ hf_models/
 # OS
 .DS_Store
 Thumbs.db
+external/neta/phase2/timesfm/timesfm_src/

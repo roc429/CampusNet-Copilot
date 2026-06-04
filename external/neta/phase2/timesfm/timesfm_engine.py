@@ -288,32 +288,7 @@ class TimesFMEngine:
 
     def _run_forecast(self, context, horizon):
         context = np.asarray(context, dtype=np.float32)
-
-        try:
-            return self.model.forecast(
-                horizon=int(horizon),
-                inputs=[context]
-            )
-        except TypeError:
-            pass
-
-        try:
-            return self.model.forecast(
-                inputs=[context],
-                horizon=int(horizon)
-            )
-        except TypeError:
-            pass
-
-        try:
-            return self.model.forecast(
-                [context],
-                int(horizon)
-            )
-        except TypeError as e:
-            raise RuntimeError(
-                "当前 TimesFM forecast API 与脚本不匹配。原始错误: {}".format(e)
-            )
+        return self.model.forecast(int(horizon), [context])
 
     def extract_quantiles(self, point, quantile):
         q = np.asarray(quantile).astype(float)

@@ -1,0 +1,87 @@
+{
+  "_description": "AP-EXAM-302 fault snapshot at 10:00 AM",
+  "timestamp": "2026-06-01T10:00:00",
+  "target_device": "AP-EXAM-302",
+  "metrics": {
+    "AP-EXAM-302": {
+      "role": "teaching_ap",
+      "load": 0.7812,
+      "loss": 0.0813,
+      "throughput_mbps": 78.12,
+      "connections": 48,
+      "latency_ms": 156.3
+    },
+    "AP-EXAM-301": {
+      "role": "teaching_ap",
+      "load": 0.352,
+      "loss": 0.0012,
+      "throughput_mbps": 35.2,
+      "connections": 22,
+      "latency_ms": 3.2
+    },
+    "AP-EXAM-303": {
+      "role": "teaching_ap",
+      "load": 0.284,
+      "loss": 0.0008,
+      "throughput_mbps": 28.4,
+      "connections": 18,
+      "latency_ms": 2.8
+    },
+    "AP-LIB-01": {
+      "role": "teaching_ap",
+      "load": 0.185,
+      "loss": 0.0005,
+      "throughput_mbps": 18.5,
+      "connections": 10,
+      "latency_ms": 4.1
+    },
+    "AP-DORM-A1": {
+      "role": "dorm_ap",
+      "load": 0.092,
+      "loss": 0.0001,
+      "throughput_mbps": 9.2,
+      "connections": 5,
+      "latency_ms": 2.1
+    },
+    "AP-DORM-A2": {
+      "role": "dorm_ap",
+      "load": 0.073,
+      "loss": 0.0001,
+      "throughput_mbps": 7.3,
+      "connections": 3,
+      "latency_ms": 1.9
+    },
+    "SW-TEACH-01": {
+      "role": "agg_switch",
+      "load": 0.87,
+      "loss": 0.0035,
+      "throughput_mbps": 870.0,
+      "connections": 185,
+      "latency_ms": 12.5
+    },
+    "SW-DORM-01": {
+      "role": "agg_switch",
+      "load": 0.21,
+      "loss": 0.0002,
+      "throughput_mbps": 210.0,
+      "connections": 42,
+      "latency_ms": 2.3
+    },
+    "SW-DC-01": {
+      "role": "agg_switch",
+      "load": 0.42,
+      "loss": 0.0003,
+      "throughput_mbps": 420.0,
+      "connections": 95,
+      "latency_ms": 3.5
+    },
+    "OF-CORE-01": {
+      "role": "core_switch",
+      "load": 0.51,
+      "loss": 0.0001,
+      "throughput_mbps": 5100.0,
+      "connections": 520,
+      "latency_ms": 1.2
+    }
+  }
+}
