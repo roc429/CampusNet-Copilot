@@ -577,11 +577,11 @@ class DiagnosisAgent:
             f"故障现象: {event.symptom or event.issue_desc or '未提供'}\n"
             f"用户原问题: {event.question or event.issue_desc}\n\n"
             "请按以下策略执行：\n"
-            "1. 优先调用 NetBox MCP 查询相关位置、设备、接口、拓扑或影响范围。\n"
+            "1. 优先调用 Neo4j Hybrid GraphRAG 查询相关位置、设备、接口、拓扑或影响范围。\n"
             "2. 调用 Prometheus MCP 查询当前和最近 5 到 30 分钟指标，至少关注 packet_loss、latency、cpu_load、connections；如工具支持，也查询 AP 负载、带宽、接口错误。\n"
-            "   重要：Prometheus 的 device_id 标签必须使用 NetBox 设备 name，例如 AP-LIB-01 或 SW-TEACH-01；"
-            "不要使用 NetBox 内部数字 id，例如 1、2、3，否则会查不到设备指标。\n"
-            "   如果 NetBox 返回设备对象，先提取 name 字段，再把这些 name 作为 get_device_metrics 的 device_ids。\n"
+            "   重要：Prometheus 的 device_id 标签必须使用 拓扑中的设备 ID，例如 AP-LIB-01 或 SW-TEACH-01；"
+            "不要使用 数字 id，例如 1、2、3，否则会查不到设备指标。\n"
+            "   如果 拓扑返回设备列表，先提取 name 字段，再把这些 name 作为 get_device_metrics 的 device_ids。\n"
             "3. 如果用户问题包含明天、后天、今晚、未来、预测、预计、会不会等未来时间或预测意图，"
             "必须先用 Prometheus MCP 获取相关设备当前/历史指标，再调用 TimesFM MCP 的 forecast_metric、"
             "forecast_quantile 或 detect_anomaly_window 预测未来 packet_loss、cpu_load、connections 等指标；"
@@ -650,7 +650,7 @@ class DiagnosisAgent:
     def _component_from_tool_name(tool_name: str) -> str:
         lowered = tool_name.lower()
         if "netbox" in lowered:
-            return "NetBox MCP"
+            return "Neo4j Hybrid GraphRAG"
         if "prometheus" in lowered or "metric" in lowered or "query" in lowered:
             return "Prometheus MCP"
         if "rag" in lowered or "knowledge" in lowered:
@@ -661,7 +661,7 @@ class DiagnosisAgent:
     def _missing_from_langgraph_trace(tool_trace: list[dict[str, str]]) -> list[str]:
         text = " ".join(f"{item.get('component')} {item.get('tool')} {item.get('status')}" for item in tool_trace)
         missing: list[str] = []
-        if "NetBox MCP" not in text:
+        if "Neo4j Hybrid GraphRAG" not in text:
             missing.append("topology")
         if "Prometheus MCP" not in text:
             missing.append("metrics")
@@ -957,7 +957,7 @@ class DiagnosisAgent:
                 "detail": "规则分类；未调用 LLM。",
             },
             {
-                "component": "NetBox MCP",
+                "component": "Neo4j Hybrid GraphRAG",
                 "tool": "netbox_get_objects",
                 "status": DiagnosisAgent._source_status(topology_sources, "netbox_mcp"),
                 "detail": DiagnosisAgent._source_detail(topology_sources),
