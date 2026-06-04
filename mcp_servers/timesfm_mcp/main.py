@@ -224,9 +224,42 @@ async def _remote_forecast(
 
 
 # ----------------------------------------------------------------------------
-# 本地兜底:EWMA + 残差分位数
+# TimesFM
 # ----------------------------------------------------------------------------
 
+_TIMESFM_MODEL = None
+
+def _get_timesfm_model():
+    global _TIMESFM_MODEL
+    if _TIMESFM_MODEL is not None:
+        return _TIMESFM_MODEL
+    import timesfm, numpy as np
+    model_path = "/root/models/timesfm-2.5-200m-pytorch"
+    logger.info("Loading TimesFM from %s ...", model_path)
+    _TIMESFM_MODEL = timesfm.TimesFM_2p5_200M_torch.from_pretrained(model_path)
+    _TIMESFM_MODEL.compile(timesfm.ForecastConfig(max_context=512, max_horizon=24))
+    logger.info("TimesFM model loaded.")
+    return _TIMESFM_MODEL
+
+def _local_timesfm_forecast(history, horizon):
+    try:
+        import numpy as np
+        model = _get_timesfm_model()
+        ctx = np.array(history[-256:], dtype=np.float32)
+        pt, qt = model.forecast(int(horizon), [ctx])
+        result = {"source": "timesfm-model", "forecast": pt[0].tolist(), "quantiles": {}}
+        if qt is not None and len(qt) > 0:
+            qarr = qt[0]
+            if qarr.shape[1] > 9:
+                result["quantiles"] = {"0.10": qarr[:,1].tolist(), "0.50": qarr[:,5].tolist(), "0.90": qarr[:,9].tolist()}
+        logger.info("TimesFM forecast: %d points", len(result["forecast"]))
+        return result
+    except Exception as exc:
+        logger.warning("TimesFM failed, fallback EWMA: %s", exc)
+        return None
+
+# EWMA
+# ----------------------------------------------------------------------------
 
 def _ewma(history: list[float], alpha: float = 0.3) -> list[float]:
     """指数加权移动平均序列。"""
@@ -361,7 +394,7 @@ async def forecast_metric(
         logger.warning("No history available for device=%s metric=%s, using zero context.", device_id, metric)
 
     remote = await _remote_forecast(history, horizon_points)
-    forecast_block = remote or _local_forecast(history, horizon_points)
+    forecast_block = remote or _local_timesfm_forecast(history, horizon_points) or _local_forecast(history, horizon_points)
 
     return {
         "ok": True,
