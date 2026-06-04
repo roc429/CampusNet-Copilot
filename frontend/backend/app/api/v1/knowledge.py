@@ -36,7 +36,7 @@ LIMIT 50
 
 IMPORT_CYPHER = [
     'MERGE (ap:Device {deviceID: "AP-EXAM-302", name: "302考场AP"})',
-    'MERGE (sw:Switch {deviceID: "SW-EXAM-3F", name: "考试楼三层接入交换机"})',
+    'MERGE (sw:Switch {deviceID: "SW-TEACH-01", name: "教学楼汇聚交换机"})',
     'MERGE (area:Area {name: "302考场"})',
     'MERGE (ap)-[:CONNECTED_TO]->(sw)',
     'MERGE (ap)-[:LOCATED_IN]->(area)',

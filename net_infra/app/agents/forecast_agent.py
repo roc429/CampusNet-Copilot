@@ -16,7 +16,7 @@ from app.stores import OpsMemoryStore
 class ForecastAgent:
     """Generate future-risk signals with TimesFM MCP when enabled."""
 
-    default_devices = ["AP-LIB-3F-02", "SW-LIB-AGG-01"]
+    default_devices = ["AP-LIB-01", "SW-TEACH-01"]
     default_metrics = ["connections", "packet_loss", "cpu_load"]
 
     def __init__(

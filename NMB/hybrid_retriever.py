@@ -107,7 +107,7 @@ class HybridGraphRAG:
         """从文本中提取命中的设备/服务名（子串匹配）。"""
         names = self._load_device_names()
         matched = []
-        # 按名称长度降序排列，优先匹配长名（避免 SW-CORE-01 被 SW 误匹配）
+        # 按名称长度降序排列，优先匹配长名（避免 OF-CORE-01 被 SW 误匹配）
         for name in sorted(names, key=len, reverse=True):
             if name in text and name not in matched:
                 matched.append(name)

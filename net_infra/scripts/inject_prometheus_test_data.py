@@ -9,10 +9,10 @@ python scripts/inject_prometheus_test_data.py --duration 600 --interval 5
 
 # 指定不同Pushgateway(Prometheus的API)
 python scripts/inject_prometheus_test_data.py --pushgateway http://1.2.3.4:9091 \\
-    --devices AP-A3-2F-01 SW-CORE-01
+    --devices AP-EXAM-301 OF-CORE-01
 
 # 模拟某台设备故障(packet_loss飙升)
-python scripts/inject_prometheus_test_data.py --duration 300 --fault-device AP-LIB-3F-02
+python scripts/inject_prometheus_test_data.py --duration 300 --fault-device AP-LIB-01
 """
 
 from __future__ import annotations
@@ -38,10 +38,10 @@ DEFAULT_JOB = "campusnet_telemetry"
 
 # 默认设备清单
 DEVICES: list[dict[str, str]] = [
-    {"id": "AP-A3-2F-01", "type": "ap", "building": "A3", "floor": "2F"},
-    {"id": "AP-LIB-3F-02", "type": "ap", "building": "LIB", "floor": "3F"},
-    {"id": "SW-CORE-01", "type": "switch", "building": "CORE", "floor": "1F"},
-    {"id": "SC-CORE-01", "type": "switch", "building": "CORE", "floor": "1F"},
+    {"id": "AP-EXAM-301", "type": "ap", "building": "A3", "floor": "2F"},
+    {"id": "AP-LIB-01", "type": "ap", "building": "LIB", "floor": "3F"},
+    {"id": "OF-CORE-01", "type": "switch", "building": "CORE", "floor": "1F"},
+    {"id": "SW-DC-01", "type": "switch", "building": "CORE", "floor": "1F"},
 ]
 
 

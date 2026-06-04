@@ -17,19 +17,19 @@ logger = logging.getLogger(__name__)
 
 
 _MOCK_DEVICES: dict[str, dict[str, Any]] = {
-    "AP-LIB-3F-01": {"device_id": "AP-LIB-3F-01", "name": "AP-LIB-3F-01", "role": "ap", "location": "图书馆三楼"},
-    "AP-LIB-3F-02": {"device_id": "AP-LIB-3F-02", "name": "AP-LIB-3F-02", "role": "ap", "location": "图书馆三楼"},
-    "SW-LIB-AGG-01": {"device_id": "SW-LIB-AGG-01", "name": "SW-LIB-AGG-01", "role": "switch", "location": "图书馆三楼"},
-    "AP-DORM-01": {"device_id": "AP-DORM-01", "name": "AP-DORM-01", "role": "ap", "location": "宿舍区"},
-    "SW-AGG-DORM-01": {"device_id": "SW-AGG-DORM-01", "name": "SW-AGG-DORM-01", "role": "aggregation_switch", "location": "宿舍区"},
+    "AP-LIB-01": {"device_id": "AP-LIB-01", "name": "AP-LIB-01", "role": "ap", "location": "图书馆三楼"},
+    "AP-LIB-01": {"device_id": "AP-LIB-01", "name": "AP-LIB-01", "role": "ap", "location": "图书馆三楼"},
+    "SW-TEACH-01": {"device_id": "SW-TEACH-01", "name": "SW-TEACH-01", "role": "switch", "location": "图书馆三楼"},
+    "AP-DORM-A1": {"device_id": "AP-DORM-A1", "name": "AP-DORM-A1", "role": "ap", "location": "宿舍区"},
+    "SW-DORM-01": {"device_id": "SW-DORM-01", "name": "SW-DORM-01", "role": "aggregation_switch", "location": "宿舍区"},
 }
 
 _MOCK_NEIGHBORS: dict[str, dict[str, list[str]]] = {
-    "AP-LIB-3F-01": {"upstream": ["SW-LIB-AGG-01"], "downstream": []},
-    "AP-LIB-3F-02": {"upstream": ["SW-LIB-AGG-01"], "downstream": []},
-    "SW-LIB-AGG-01": {"upstream": [], "downstream": ["AP-LIB-3F-01", "AP-LIB-3F-02"]},
-    "AP-DORM-01": {"upstream": ["SW-AGG-DORM-01"], "downstream": []},
-    "SW-AGG-DORM-01": {"upstream": [], "downstream": ["AP-DORM-01"]},
+    "AP-LIB-01": {"upstream": ["SW-TEACH-01"], "downstream": []},
+    "AP-LIB-01": {"upstream": ["SW-TEACH-01"], "downstream": []},
+    "SW-TEACH-01": {"upstream": [], "downstream": ["AP-LIB-01", "AP-LIB-01"]},
+    "AP-DORM-A1": {"upstream": ["SW-DORM-01"], "downstream": []},
+    "SW-DORM-01": {"upstream": [], "downstream": ["AP-DORM-A1"]},
 }
 
 
@@ -214,9 +214,9 @@ def _mock_search_devices(query: str) -> list[dict[str, Any]]:
 
 def _mock_devices_by_location(location: str) -> list[dict[str, Any]]:
     if "图书馆" in location:
-        keys = ["AP-LIB-3F-01", "AP-LIB-3F-02", "SW-LIB-AGG-01"]
+        keys = ["AP-LIB-01", "AP-LIB-01", "SW-TEACH-01"]
     elif "宿舍" in location:
-        keys = ["AP-DORM-01", "SW-AGG-DORM-01"]
+        keys = ["AP-DORM-A1", "SW-DORM-01"]
     else:
         keys = []
     return [{**_MOCK_DEVICES[key], "source": "mock_fallback"} for key in keys]

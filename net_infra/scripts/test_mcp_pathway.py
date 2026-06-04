@@ -15,7 +15,7 @@ python scripts/test_mcp_pathway.py
 python scripts/test_mcp_pathway.py --servers prometheus timesfm
 
 # 指定设备ID
-python scripts/test_mcp_pathway.py --device AP-LIB-3F-02
+python scripts/test_mcp_pathway.py --device AP-LIB-01
 """
 
 from __future__ import annotations
@@ -403,8 +403,8 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--device",
-        default="AP-A3-2F-01",
-        help="测试用设备 ID(应已通过 inject_prometheus_test_data.py 注入数据,默认 AP-A3-2F-01)",
+        default="AP-EXAM-301",
+        help="测试用设备 ID(应已通过 inject_prometheus_test_data.py 注入数据,默认 AP-EXAM-301)",
     )
     parser.add_argument(
         "--servers",

@@ -64,10 +64,10 @@ const MOCK_TOPOLOGY: TopologyResponse = {
       properties: { deviceID: 'AP-EXAM-302', name: '302考场AP', _neo4j_id: 0 },
     },
     {
-      id: 'SW-EXAM-3F',
-      label: '考试楼三层接入交换机',
+      id: 'SW-TEACH-01',
+      label: '教学楼汇聚交换机',
       type: 'Switch',
-      properties: { deviceID: 'SW-EXAM-3F', name: '考试楼三层接入交换机', _neo4j_id: 1 },
+      properties: { deviceID: 'SW-TEACH-01', name: '教学楼汇聚交换机', _neo4j_id: 1 },
     },
     {
       id: 'AREA-302',
@@ -80,7 +80,7 @@ const MOCK_TOPOLOGY: TopologyResponse = {
     {
       id: 'e1',
       source: 'AP-EXAM-302',
-      target: 'SW-EXAM-3F',
+      target: 'SW-TEACH-01',
       relation: 'CONNECTED_TO',
       properties: {},
     },
@@ -105,7 +105,7 @@ const MOCK_TOPOLOGY: TopologyResponse = {
       topology: 'MATCH (a)-[r]->(b) RETURN a, r, b LIMIT 200',
       import_example: [
         'MERGE (ap:Device {deviceID: "AP-EXAM-302", name: "302考场AP"})',
-        'MERGE (sw:Switch {deviceID: "SW-EXAM-3F", name: "考试楼三层接入交换机"})',
+        'MERGE (sw:Switch {deviceID: "SW-TEACH-01", name: "教学楼汇聚交换机"})',
         'MERGE (area:Area {name: "302考场"})',
         'MERGE (ap)-[:CONNECTED_TO]->(sw)',
         'MERGE (ap)-[:LOCATED_IN]->(area)',

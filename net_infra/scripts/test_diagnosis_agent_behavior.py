@@ -40,7 +40,7 @@ async def main() -> None:
             issue_desc="三层网络掉线并伴随高丢包",
             packet_loss=0.11,
             latency_ms=188.0,
-            device_hint="AP-LIB-3F-02",
+            device_hint="AP-LIB-01",
         )
     )
 

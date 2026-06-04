@@ -87,9 +87,9 @@ def main():
     # 3) Devices
     ap1 = get_or_create(
         "/api/dcim/devices/",
-        {"name": "AP-LIB-3F-01"},
+        {"name": "AP-LIB-01"},
         {
-            "name": "AP-LIB-3F-01",
+            "name": "AP-LIB-01",
             "site": site["id"],
             "location": location["id"],
             "device_type": ap_type["id"],
@@ -99,9 +99,9 @@ def main():
     )
     ap2 = get_or_create(
         "/api/dcim/devices/",
-        {"name": "AP-LIB-3F-02"},
+        {"name": "AP-LIB-01"},
         {
-            "name": "AP-LIB-3F-02",
+            "name": "AP-LIB-01",
             "site": site["id"],
             "location": location["id"],
             "device_type": ap_type["id"],
@@ -111,9 +111,9 @@ def main():
     )
     sw = get_or_create(
         "/api/dcim/devices/",
-        {"name": "SW-LIB-AGG-01"},
+        {"name": "SW-TEACH-01"},
         {
-            "name": "SW-LIB-AGG-01",
+            "name": "SW-TEACH-01",
             "site": site["id"],
             "location": location["id"],
             "device_type": sw_type["id"],

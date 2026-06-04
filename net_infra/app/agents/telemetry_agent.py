@@ -48,7 +48,7 @@ class TelemetryAgent:
                     issue_desc="检测到链路丢包异常，用户可能出现掉线或高延迟。",
                     packet_loss=packet_loss,
                     latency_ms=latency_ms,
-                    device_hint=random.choice(["AP-A3-2F-01", "AP-LIB-3F-02"]),
+                    device_hint=random.choice(["AP-EXAM-301", "AP-LIB-01"]),
                 )
                 if self.store is not None:
                     self.store.save_event(event)

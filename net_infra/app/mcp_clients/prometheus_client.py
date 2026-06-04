@@ -22,11 +22,11 @@ _PROM_METRIC_NAMES = {
 }
 
 _MOCK_METRICS: dict[str, dict[str, float]] = {
-    "AP-LIB-3F-01": {"packet_loss": 0.018, "bandwidth_in": 68.0, "bandwidth_out": 72.0, "ap_load": 91.0, "cpu_load": 62.0, "connections": 116.0, "latency": 38.0, "interface_errors": 1.0},
-    "AP-LIB-3F-02": {"packet_loss": 0.011, "bandwidth_in": 42.0, "bandwidth_out": 45.0, "ap_load": 74.0, "cpu_load": 51.0, "connections": 82.0, "latency": 29.0, "interface_errors": 0.0},
-    "SW-LIB-AGG-01": {"packet_loss": 0.004, "bandwidth_in": 71.0, "bandwidth_out": 72.0, "ap_load": 0.0, "cpu_load": 44.0, "connections": 0.0, "latency": 16.0, "interface_errors": 0.0},
-    "AP-DORM-01": {"packet_loss": 0.036, "bandwidth_in": 86.0, "bandwidth_out": 89.0, "ap_load": 88.0, "cpu_load": 69.0, "connections": 138.0, "latency": 55.0, "interface_errors": 2.0},
-    "SW-AGG-DORM-01": {"packet_loss": 0.028, "bandwidth_in": 92.0, "bandwidth_out": 94.0, "ap_load": 0.0, "cpu_load": 57.0, "connections": 0.0, "latency": 48.0, "interface_errors": 1.0},
+    "AP-LIB-01": {"packet_loss": 0.018, "bandwidth_in": 68.0, "bandwidth_out": 72.0, "ap_load": 91.0, "cpu_load": 62.0, "connections": 116.0, "latency": 38.0, "interface_errors": 1.0},
+    "AP-LIB-01": {"packet_loss": 0.011, "bandwidth_in": 42.0, "bandwidth_out": 45.0, "ap_load": 74.0, "cpu_load": 51.0, "connections": 82.0, "latency": 29.0, "interface_errors": 0.0},
+    "SW-TEACH-01": {"packet_loss": 0.004, "bandwidth_in": 71.0, "bandwidth_out": 72.0, "ap_load": 0.0, "cpu_load": 44.0, "connections": 0.0, "latency": 16.0, "interface_errors": 0.0},
+    "AP-DORM-A1": {"packet_loss": 0.036, "bandwidth_in": 86.0, "bandwidth_out": 89.0, "ap_load": 88.0, "cpu_load": 69.0, "connections": 138.0, "latency": 55.0, "interface_errors": 2.0},
+    "SW-DORM-01": {"packet_loss": 0.028, "bandwidth_in": 92.0, "bandwidth_out": 94.0, "ap_load": 0.0, "cpu_load": 57.0, "connections": 0.0, "latency": 48.0, "interface_errors": 1.0},
 }
 
 

@@ -25,9 +25,13 @@ class Settings(BaseSettings):
     dashscope_chat_url: str = (
         "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
     )
-
-    # 校园网络遥测 CSV（默认指向仓库根目录 telemetry.csv）
+    # 校园网络遥测 CSV
     telemetry_csv_path: str = ""
+
+    # Neo4j 知识图谱
+    neo4j_uri: str = "bolt://localhost:7687"
+    neo4j_user: str = "neo4j"
+    neo4j_password: str = "password"
 
     @property
     def database_url_resolved(self) -> str:
@@ -37,7 +41,7 @@ class Settings(BaseSettings):
         user = quote_plus(self.mysql_user)
         pwd = quote_plus(self.mysql_password)
         return (
-            f"mysql+pymysql://{user}:{pwd}"
+            f"postgresql+psycopg2://{user}:{pwd}"
             f"@{self.mysql_host}:{self.mysql_port}/{self.mysql_database}"
         )
 

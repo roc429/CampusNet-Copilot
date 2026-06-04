@@ -11,7 +11,7 @@ results = []
 cases = [
     {"query": "302考场考试系统卡顿，是不是AP负载太高？", "device_id": "AP-EXAM-302"},
     {"query": "401考场考生登录失败，考试系统无法访问", "device_id": "AP-EXAM-401"},
-    {"query": "核心交换机CPU异常，影响哪些业务？", "device_id": "SW-CORE-01"},
+    {"query": "核心交换机CPU异常，影响哪些业务？", "device_id": "OF-CORE-01"},
     {"query": "XY-999设备故障", "device_id": "XY-999"},
 ]
 

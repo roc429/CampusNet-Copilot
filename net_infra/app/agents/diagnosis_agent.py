@@ -579,7 +579,7 @@ class DiagnosisAgent:
             "请按以下策略执行：\n"
             "1. 优先调用 NetBox MCP 查询相关位置、设备、接口、拓扑或影响范围。\n"
             "2. 调用 Prometheus MCP 查询当前和最近 5 到 30 分钟指标，至少关注 packet_loss、latency、cpu_load、connections；如工具支持，也查询 AP 负载、带宽、接口错误。\n"
-            "   重要：Prometheus 的 device_id 标签必须使用 NetBox 设备 name，例如 AP-LIB-3F-02 或 SW-LIB-AGG-01；"
+            "   重要：Prometheus 的 device_id 标签必须使用 NetBox 设备 name，例如 AP-LIB-01 或 SW-TEACH-01；"
             "不要使用 NetBox 内部数字 id，例如 1、2、3，否则会查不到设备指标。\n"
             "   如果 NetBox 返回设备对象，先提取 name 字段，再把这些 name 作为 get_device_metrics 的 device_ids。\n"
             "3. 如果用户问题包含明天、后天、今晚、未来、预测、预计、会不会等未来时间或预测意图，"
