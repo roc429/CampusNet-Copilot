@@ -414,3 +414,9 @@ async def audit_logs() -> dict[str, object]:
     """查看安全护栏审计记录。"""
 
     return {"count": len(store.audit_logs), "items": list(store.audit_logs.values())}
+# ── NMB GraphRAG 桥接 ──
+from app.rag_bridge import rag_hybrid_search
+@app.get("/api/rag/test")
+async def rag_test(device_id: str = "AP-EXAM-302", query: str = ""):
+    result = await rag_hybrid_search(query, device_id)
+    return result

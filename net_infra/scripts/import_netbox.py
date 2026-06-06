@@ -5,8 +5,8 @@ import json, httpx
 with open('NMB/campus_topology.json') as f:
     topo = json.load(f)
 
-NETBOX_URL = "http://localhost:8000"
-TOKEN = "0123456789abcdef0123456789abcdef01234567"
+NETBOX_URL = "http://localhost:8008"
+TOKEN = "32Y4JUdXmc1vOO5TY7gmDhLswqPoZyBBnaa4kAFR"
 
 headers = {"Authorization": f"Token {TOKEN}", "Content-Type": "application/json"}
 
