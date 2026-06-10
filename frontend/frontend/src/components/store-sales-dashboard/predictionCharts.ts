@@ -2,7 +2,7 @@ import * as echarts from 'echarts'
 import type { EChartsOption } from 'echarts'
 import { PREDICTION_STATIC, type HorizonKey } from './predictionStaticData'
 
-const { allSeries, roleSeries, kpi, rolePie, hourlyBar, capacity } = PREDICTION_STATIC
+const { allSeries, kpi, rolePie, hourlyBar, capacity } = PREDICTION_STATIC
 
 const labels = allSeries.map((p) => p.label)
 const q10 = allSeries.map((p) => p.q10)
@@ -117,12 +117,118 @@ export function buildPredictionForecastOption(): EChartsOption {
   }
 }
 
-/** 分区 24h 预测对比 */
-export function buildRoleForecastOption(): EChartsOption {
+export type LiveForecastSeries = {
+  labels: string[]
+  q10: number[]
+  q50: number[]
+  q90: number[]
+}
+
+function toPctValues(values: number[]): number[] {
+  return values.map((v) => Number((v <= 1 ? v * 100 : v).toFixed(3)))
+}
+
+/** 与静态主图相同样式，数据来自 TimesFM MCP */
+export function buildPredictionForecastOptionFromLive(series: LiveForecastSeries): EChartsOption {
+  const { labels: ls, q10: rawQ10, q50: rawQ50, q90: rawQ90 } = series
+  const q10p = toPctValues(rawQ10)
+  const q50p = toPctValues(rawQ50)
+  const q90p = toPctValues(rawQ90)
+  const band = q10p.map((v, i) => Number((q90p[i] - v).toFixed(4)))
+  const yMax = Math.ceil(Math.max(...q90p, ...q50p, 1) * 1.25)
+  const xInterval = ls.length > 12 ? Math.max(1, Math.floor(ls.length / 6)) : ls.length > 6 ? 1 : 0
+
+  return {
+    tooltip: {
+      trigger: 'axis',
+      formatter: (params: unknown) => {
+        const list = params as { dataIndex: number }[]
+        const idx = list[0]?.dataIndex ?? -1
+        if (idx < 0) return ''
+        return [
+          `<strong>${ls[idx]}</strong>`,
+          `Q10：${q10p[idx]}%`,
+          `Q50：${q50p[idx]}%`,
+          `Q90：${q90p[idx]}%`,
+        ].join('<br/>')
+      },
+    },
+    legend: {
+      data: ['预测中位数 Q50', 'Q10~Q90 置信带'],
+      textStyle: { color: '#2b6ec8', fontSize: 10 },
+      top: 0,
+      right: 0,
+    },
+    grid: { left: '2%', right: '3%', top: '18%', bottom: '6%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: ls,
+      axisLabel: { color: '#2b6ec8', fontSize: 9, interval: xInterval },
+      axisLine: { lineStyle: { color: 'rgba(43,110,200,0.35)' } },
+      axisTick: { show: false },
+    },
+    yAxis: {
+      type: 'value',
+      name: '负载 %',
+      nameTextStyle: { color: '#2b6ec8', fontSize: 10 },
+      axisLabel: { color: '#2b6ec8', formatter: '{value}%' },
+      splitLine: { lineStyle: { color: 'rgba(43,110,200,0.12)' } },
+      max: yMax,
+    },
+    series: [
+      {
+        name: 'Q10基线',
+        type: 'line',
+        stack: 'ci',
+        data: q10p,
+        lineStyle: { opacity: 0 },
+        symbol: 'none',
+        silent: true,
+      },
+      {
+        name: 'Q10~Q90 置信带',
+        type: 'line',
+        stack: 'ci',
+        data: band,
+        lineStyle: { opacity: 0 },
+        areaStyle: { color: 'rgba(24,144,255,0.22)' },
+        symbol: 'none',
+        silent: true,
+      },
+      {
+        name: '预测中位数 Q50',
+        type: 'line',
+        smooth: true,
+        data: q50p,
+        symbol: 'circle',
+        symbolSize: 5,
+        lineStyle: { color: '#1890ff', width: 2 },
+        itemStyle: { color: '#1890ff' },
+      },
+    ],
+  }
+}
+
+export type LiveRoleSeries = {
+  name: string
+  color: string
+  q50: number[]
+}
+
+/** 分区预测对比 — 数据来自 TimesFM MCP（多设备并行预测） */
+export function buildRoleForecastOptionFromLive(
+  labels: string[],
+  roles: LiveRoleSeries[],
+): EChartsOption {
+  const xInterval = labels.length > 14 ? 2 : labels.length > 8 ? 1 : 0
+  const allVals = roles.flatMap((r) => toPctValues(r.q50))
+  const yMax = Math.ceil(Math.max(...allVals, 1) * 1.25)
+
   return {
     tooltip: { trigger: 'axis' },
     legend: {
-      data: roleSeries.map((r) => r.name),
+      data: roles.map((r) => r.name),
       textStyle: { color: '#2b6ec8', fontSize: 10 },
       top: 0,
     },
@@ -131,7 +237,7 @@ export function buildRoleForecastOption(): EChartsOption {
       type: 'category',
       boundaryGap: false,
       data: labels,
-      axisLabel: { color: '#2b6ec8', fontSize: 9, interval: 3 },
+      axisLabel: { color: '#2b6ec8', fontSize: 9, interval: xInterval },
       axisLine: { lineStyle: { color: 'rgba(43,110,200,0.35)' } },
       axisTick: { show: false },
     },
@@ -141,12 +247,13 @@ export function buildRoleForecastOption(): EChartsOption {
       nameTextStyle: { color: '#2b6ec8', fontSize: 10 },
       axisLabel: { color: '#2b6ec8', formatter: '{value}%' },
       splitLine: { lineStyle: { color: 'rgba(43,110,200,0.12)' } },
+      max: yMax,
     },
-    series: roleSeries.map((r) => ({
+    series: roles.map((r) => ({
       name: r.name,
       type: 'line' as const,
       smooth: true,
-      data: r.series.map((p) => p.q50),
+      data: toPctValues(r.q50),
       symbol: 'none',
       lineStyle: { width: 2, color: r.color },
       itemStyle: { color: r.color },

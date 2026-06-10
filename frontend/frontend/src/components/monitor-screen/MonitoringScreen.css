@@ -58,6 +58,14 @@
   overflow: hidden;
 }
 
+.ms-root {
+  position: relative;
+}
+
+.ms-host-body--with-mcp {
+  padding-bottom: 36px;
+}
+
 /* —— 顶栏（与 IofTV-Screen 原版一致） —— */
 .ms-title-wrap {
   height: 60px;
@@ -557,6 +565,17 @@
   position: relative;
 }
 
+.ms-center-kpi > .ms-ap-panel {
+  flex: 1;
+  min-height: 0;
+}
+
+.ms-ap-panel .dv-border-box-13 {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .ms-ap-panel .item_title {
   height: 48px;
   line-height: 48px;
@@ -1035,35 +1054,36 @@
   color: #1890FF;
 }
 
-/* —— 12 路 AP 状态网格 —— */
+/* —— AP 状态网格（6 路，对齐 campus_topology.json） —— */
 .ms-ap-grid {
+  flex: 1;
+  width: 100%;
   height: 100%;
+  min-height: 0;
   display: grid;
-  grid-template-columns: repeat(4, auto);
-  grid-template-rows: repeat(3, auto);
-  gap: 12px 16px;
-  padding: 10px 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+  padding: 12px 18px 16px;
   box-sizing: border-box;
-  align-content: center;
-  justify-content: center;
+  align-content: stretch;
+  justify-content: stretch;
 }
 
 .ms-ap-card {
-  width: 148px;
-  height: 124px;
-  max-width: 148px;
-  max-height: 124px;
+  width: 100%;
+  height: 100%;
   min-width: 0;
   min-height: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid rgba(24, 144, 255, 0.15);
   background: #ffffff;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 7px 6px;
+  gap: 8px;
+  padding: 14px 12px;
   box-sizing: border-box;
 }
 
@@ -1085,16 +1105,19 @@
 }
 
 .ms-ap-card__id {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: #333333;
-  line-height: 1.1;
+  line-height: 1.15;
+  text-align: center;
+  word-break: break-all;
 }
 
 .ms-ap-card__dot {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .ms-ap-card__dot--ok {
@@ -1117,29 +1140,31 @@
 }
 
 .ms-ap-card__status {
-  font-size: 14px;
+  font-size: 15px;
   color: #8C8C8C;
   line-height: 1.1;
 }
 
 .ms-ap-card__role {
-  font-size: 13px;
+  font-size: 14px;
   color: #8C8C8C;
   text-align: center;
-  line-height: 1.15;
+  line-height: 1.2;
 }
 
 .ms-ap-card__metric {
-  font-size: 22px;
+  font-size: 32px;
   font-weight: 800;
   color: #002140;
-  line-height: 1.1;
+  line-height: 1;
+  margin: 4px 0;
 }
 
 .ms-ap-card__sub {
-  font-size: 13px;
+  font-size: 14px;
   color: #8C8C8C;
-  line-height: 1.1;
+  line-height: 1.15;
+  text-align: center;
 }
 
 /* —— 数据表格 —— */

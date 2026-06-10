@@ -17,49 +17,12 @@ export type LoadSeriesPoint = { time: string; avgLoadPct: number }
 export type ThroughputSeriesPoint = { time: string; throughputMbps: number }
 export type LossHealthPoint = { time: string; lossPct: number; healthScore: number }
 export type PartitionLoadItem = { name: string; value: number }
-export type ApStatusItem = (typeof TELEMETRY_STATIC.ap12)[number]
+export type ApStatusItem = (typeof TELEMETRY_STATIC.apStatus)[number]
 export type PortDetailItem = (typeof TELEMETRY_STATIC.portDetails)[number]
 export type RuleAlarmItem = (typeof TELEMETRY_STATIC.ruleAlarms)[number]
 
-/** 规则告警表 — 6 条静态演示数据（无缝滚动） */
-export const RULE_ALARM_STATIC: RuleAlarmItem[] = [
-  {
-    level: '警告',
-    type: 'AP高负载',
-    time: '2026-05-29 16:56:55',
-    content: '教学区AP SW5 负载 16.6%',
-  },
-  {
-    level: '警告',
-    type: 'AP高负载',
-    time: '2026-05-29 16:56:55',
-    content: '教学区AP SW8 负载 13.5%',
-  },
-  {
-    level: '提示',
-    type: 'AP负载偏高',
-    time: '2026-05-29 16:56:55',
-    content: '宿舍区AP SW9 负载 9.6%',
-  },
-  {
-    level: '提示',
-    type: 'AP负载偏高',
-    time: '2026-05-29 16:56:55',
-    content: '教学区AP SW7 负载 6.8%',
-  },
-  {
-    level: '提示',
-    type: 'AP负载偏高',
-    time: '2026-05-29 16:56:55',
-    content: '宿舍区AP SW10 负载 5.7%',
-  },
-  {
-    level: '提示',
-    type: 'AP负载偏高',
-    time: '2026-05-29 16:56:55',
-    content: '教学区AP SW6 负载 4.9%',
-  },
-]
+/** 规则告警表 — 与 telemetryStaticData.ruleAlarms 同步 */
+export const RULE_ALARM_STATIC: RuleAlarmItem[] = [...TELEMETRY_STATIC.ruleAlarms]
 
 export type TelemetryKpi = {
   avgLoadPct: number
@@ -88,7 +51,7 @@ export async function fetchLossHealthSeries(): Promise<ApiResult<LossHealthPoint
 }
 
 export async function fetchApStatusList(): Promise<ApiResult<ApStatusItem[]>> {
-  return ok([...TELEMETRY_STATIC.ap12])
+  return ok([...TELEMETRY_STATIC.apStatus])
 }
 
 export async function fetchPortDetails(): Promise<ApiResult<PortDetailItem[]>> {
@@ -99,15 +62,51 @@ export async function fetchRuleAlarms(): Promise<ApiResult<RuleAlarmItem[]>> {
   return ok([...RULE_ALARM_STATIC])
 }
 
+type TelemetryKpiApiResponse = {
+  ok?: boolean
+  data?: {
+    avgLoadPct?: number
+    peakApLoadPct?: number
+    totalThroughputMbps?: number
+    abnormalPortCount?: number
+    portCount?: number
+    updatedAt?: number | null
+    updatedAtIso?: string | null
+  }
+  detail?: string
+}
+
+/** 核心 KPI — GET :8000/api/monitor/telemetry-kpi */
 export async function fetchTelemetryKpi(): Promise<ApiResult<TelemetryKpi>> {
-  const k = TELEMETRY_STATIC.kpi
-  return ok({
-    avgLoadPct: k.avgLoadPct,
-    peakApLoadPct: k.peakApLoadPct,
-    totalThroughputMbps: k.totalThroughputMbps,
-    abnormalPortCount: k.abnormalPortCount,
-    portCount: k.portCount,
-    updatedAt: k.updatedAtIso ? new Date(k.updatedAtIso).getTime() / 1000 : null,
-    updatedAtIso: k.updatedAtIso,
-  })
+  try {
+    const res = await fetch('/api/monitor/telemetry-kpi')
+    const body = (await res.json().catch(() => ({}))) as TelemetryKpiApiResponse
+    if (!res.ok || !body.ok || !body.data) {
+      const msg =
+        typeof body.detail === 'string'
+          ? body.detail
+          : `telemetry-kpi 请求失败 (${res.status})`
+      return { success: false, msg }
+    }
+    const d = body.data
+    return {
+      success: true,
+      data: {
+        avgLoadPct: Number(d.avgLoadPct ?? 0),
+        peakApLoadPct: Number(d.peakApLoadPct ?? 0),
+        totalThroughputMbps: Number(d.totalThroughputMbps ?? 0),
+        abnormalPortCount: Number(d.abnormalPortCount ?? 0),
+        portCount: Number(d.portCount ?? 0),
+        updatedAt:
+          d.updatedAt ??
+          (d.updatedAtIso ? new Date(d.updatedAtIso).getTime() / 1000 : null),
+        updatedAtIso: d.updatedAtIso ?? null,
+      },
+    }
+  } catch (e) {
+    return {
+      success: false,
+      msg: e instanceof Error ? e.message : 'telemetry-kpi 网络错误',
+    }
+  }
 }

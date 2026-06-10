@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
-import loginIllustration from '../assets/login-illustration.png'
-import './AuthPage.css'
+import { AuthPageLayout } from './AuthPageLayout'
 
 function RegisterPage() {
   const navigate = useNavigate()
   const [account, setAccount] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   async function handleRegisterSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -57,72 +59,86 @@ function RegisterPage() {
   }
 
   return (
-    <div className="login-page">
-      <span className="corner-triangles corner-triangles--top-left" aria-hidden="true" />
-      <span className="corner-triangles corner-triangles--bottom-right" aria-hidden="true" />
-      <Link className="login-home-link" to="/">
-        首页
-      </Link>
-      <div className="login-layout">
-        <section className="login-left" aria-hidden="true">
-          <img src={loginIllustration} alt="" className="login-illus" />
-        </section>
+    <AuthPageLayout>
+      <div className="login-v2__card">
+        <div className="login-v2__welcome">欢迎来到小智士</div>
+        <h2 className="login-v2__title">注册</h2>
 
-        <section className="login-panel">
-          <div className="login-brand-small">欢迎来到小智士</div>
-          <h2 className="login-title">注册</h2>
+        <form className="login-v2__form" onSubmit={handleRegisterSubmit}>
+          <label className="login-v2__label">
+            邮箱
+            <div className="login-v2__field">
+              <span className="login-v2__field-icon">
+                <Mail aria-hidden="true" />
+              </span>
+              <input
+                type="email"
+                autoComplete="email"
+                placeholder="请输入邮箱"
+                value={account}
+                onChange={(e) => setAccount(e.target.value)}
+              />
+            </div>
+          </label>
 
-          <form className="login-form" onSubmit={handleRegisterSubmit}>
-            <label className="login-label">
-              邮箱
-              <div className="login-input">
-                <input
-                  type="text"
-                  placeholder="请输入邮箱"
-                  value={account}
-                  onChange={(e) => setAccount(e.target.value)}
-                />
-              </div>
-            </label>
+          <label className="login-v2__label">
+            密码
+            <div className="login-v2__field">
+              <span className="login-v2__field-icon">
+                <Lock aria-hidden="true" />
+              </span>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                placeholder="请输入密码"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                className="login-v2__toggle-pw"
+                aria-label={showPassword ? '隐藏密码' : '显示密码'}
+                onClick={() => setShowPassword((v) => !v)}
+              >
+                {showPassword ? <EyeOff /> : <Eye />}
+              </button>
+            </div>
+          </label>
 
-            <label className="login-label">
-              密码
-              <div className="login-input login-input--with-icon">
-                <input
-                  type="password"
-                  placeholder="请输入密码"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <span className="eye" aria-hidden="true">
-                  ◌
-                </span>
-              </div>
-            </label>
+          <label className="login-v2__label">
+            确认密码
+            <div className="login-v2__field">
+              <span className="login-v2__field-icon">
+                <Lock aria-hidden="true" />
+              </span>
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                placeholder="请再次输入密码"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                className="login-v2__toggle-pw"
+                aria-label={showConfirmPassword ? '隐藏密码' : '显示密码'}
+                onClick={() => setShowConfirmPassword((v) => !v)}
+              >
+                {showConfirmPassword ? <EyeOff /> : <Eye />}
+              </button>
+            </div>
+          </label>
 
-            <label className="login-label">
-              确认密码
-              <div className="login-input">
-                <input
-                  type="password"
-                  placeholder="请再次输入密码"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-              </div>
-            </label>
+          <button type="submit" className="login-v2__submit">
+            注册
+          </button>
+        </form>
 
-            <button type="submit" className="login-submit">
-              注册
-            </button>
-          </form>
-
-          <div className="login-bottom">
-            已有账号？ <Link className="login-toggle" to="/login">返回登录</Link>
-          </div>
-        </section>
+        <div className="login-v2__footer">
+          已有账号？ <Link to="/login">返回登录</Link>
+        </div>
       </div>
-    </div>
+    </AuthPageLayout>
   )
 }
 

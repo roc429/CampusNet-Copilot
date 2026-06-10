@@ -12,6 +12,7 @@ import InstallationPlan from './monitor-screen/panels/InstallationPlan'
 import AlarmTrend from './monitor-screen/panels/AlarmTrend'
 import AlarmRanking from './monitor-screen/panels/AlarmRanking'
 import RealtimeAlerts from './monitor-screen/panels/RealtimeAlerts'
+import McpHealthBar from './McpHealthBar'
 import './monitor-screen/MonitoringScreen.css'
 
 const WEEKDAY = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
@@ -37,7 +38,7 @@ export default function MonitoringDashboard() {
     <div className="monitor-page">
       <ScaleScreen width={1920} height={1080} fit="fill">
         <div className="ms-root">
-          <div className="ms-host-body">
+          <div className="ms-host-body ms-host-body--with-mcp">
             <header
               className="ms-title-wrap"
               style={{ backgroundImage: `url(${topBg})` }}
@@ -101,6 +102,7 @@ export default function MonitoringDashboard() {
                 </div>
               </div>
             </div>
+            <McpHealthBar />
           </div>
         </div>
       </ScaleScreen>

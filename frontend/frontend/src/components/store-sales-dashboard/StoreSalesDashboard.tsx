@@ -5,10 +5,13 @@ import {
   buildCapacityGaugeOption,
   buildHorizonQuantileOption,
   buildHourlyBarOption,
-  buildPredictionForecastOption,
-  buildRoleForecastOption,
+  buildPredictionForecastOptionFromLive,
+  buildRoleForecastOptionFromLive,
   buildRolePieOption,
+  type LiveForecastSeries,
+  type LiveRoleSeries,
 } from './predictionCharts'
+import { callMcpTool, extractMcpStructured } from '../../api/agentApi'
 import ssdHeaderBg from '../../assets/header.png'
 import { PREDICTION_STATIC, type HorizonKey } from './predictionStaticData'
 import './icomoon.css'
@@ -42,11 +45,173 @@ function ChartBox({ options }: { options: EChartsOption | null }) {
 const P = PREDICTION_STATIC
 const HORIZON_KEYS = P.horizonKeys
 
+const LIVE_DEVICE_ID = 'AP-EXAM-301'
+const LIVE_METRIC = 'packet_loss'
+const LIVE_HORIZON_MINUTES = 30
+const LIVE_FREQ = '5m'
+const LIVE_STEP_MINUTES = 5
+
+const ROLE_FORECAST_TARGETS = [
+  { name: '教学区AP', deviceId: 'AP-EXAM-301', color: '#1890ff' },
+  { name: '宿舍区AP', deviceId: 'AP-DORM-A1', color: '#52c41a' },
+  { name: '数据接入', deviceId: 'OF-CORE-01', color: '#faad14' },
+] as const
+const ROLE_HORIZON_MINUTES = 21 * 60
+const ROLE_FREQ = '60m'
+const ROLE_METRIC = 'cpu_load'
+
+function parseQuantileSeries(quantiles: Record<string, unknown> | undefined) {
+  const pick = (keys: string[]) => {
+    if (!quantiles) return [] as number[]
+    for (const key of keys) {
+      const arr = quantiles[key]
+      if (Array.isArray(arr) && arr.length > 0) {
+        return arr.map((v) => Number(v))
+      }
+    }
+    return [] as number[]
+  }
+  return {
+    q10: pick(['0.10', '0.1']),
+    q50: pick(['0.50', '0.5']),
+    q90: pick(['0.90', '0.9']),
+  }
+}
+
+function buildLiveLabels(count: number, stepMinutes: number): string[] {
+  return Array.from({ length: count }, (_, i) => `T+${(i + 1) * stepMinutes}m`)
+}
+
+function buildHourlyLabels(count: number): string[] {
+  return Array.from({ length: count }, (_, i) => `T+${i + 1}h`)
+}
+
+function isValidForecastPayload(structured: Record<string, unknown>): boolean {
+  const forecast = (structured.forecast as number[] | undefined) ?? []
+  if (forecast.length === 0) return false
+  const source = String(structured.source ?? 'timesfm')
+  if (source === 'local-empty' && forecast.every((v) => Number(v) === 0)) return false
+  return true
+}
+
 export default function StoreSalesDashboard() {
   const hostRef = useRef<HTMLDivElement>(null)
   const [monitorTab, setMonitorTab] = useState(0)
   const [horizonKey, setHorizonKey] = useState<HorizonKey>('all')
   const [portIdx, setPortIdx] = useState(0)
+  const [liveForecastOption, setLiveForecastOption] = useState<EChartsOption | null>(null)
+  const [liveSource, setLiveSource] = useState<string | null>(null)
+  const [liveForecastLoading, setLiveForecastLoading] = useState(true)
+  const [roleForecastOption, setRoleForecastOption] = useState<EChartsOption | null>(null)
+  const [roleForecastLoading, setRoleForecastLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      setLiveForecastLoading(true)
+      try {
+        const resp = await callMcpTool('timesfm', 'forecast_metric', {
+          device_id: LIVE_DEVICE_ID,
+          metric: LIVE_METRIC,
+          horizon_minutes: LIVE_HORIZON_MINUTES,
+          freq: LIVE_FREQ,
+        })
+        if (cancelled) return
+
+        const structured = extractMcpStructured(resp)
+        if (!isValidForecastPayload(structured)) return
+
+        const forecast = structured.forecast as number[]
+        const source = String(structured.source ?? 'timesfm')
+
+        const freqMatch = String(structured.freq ?? LIVE_FREQ).match(/^(\d+)m$/i)
+        const stepMinutes = freqMatch ? Number(freqMatch[1]) : LIVE_STEP_MINUTES
+        const { q10, q50, q90 } = parseQuantileSeries(
+          structured.quantiles as Record<string, unknown> | undefined,
+        )
+        const q50Line = q50.length === forecast.length ? q50 : forecast
+        const q10Line =
+          q10.length === forecast.length ? q10 : forecast.map((v) => Number(v) * 0.85)
+        const q90Line =
+          q90.length === forecast.length ? q90 : forecast.map((v) => Number(v) * 1.15)
+
+        const liveSeries: LiveForecastSeries = {
+          labels: buildLiveLabels(forecast.length, stepMinutes),
+          q10: q10Line,
+          q50: q50Line,
+          q90: q90Line,
+        }
+
+        setLiveSource(source)
+        setLiveForecastOption(buildPredictionForecastOptionFromLive(liveSeries))
+      } catch {
+        /* MCP 不可用时留空，不展示静态图 */
+      } finally {
+        if (!cancelled) setLiveForecastLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      setRoleForecastLoading(true)
+      try {
+        const results = await Promise.all(
+          ROLE_FORECAST_TARGETS.map(async (role) => {
+            try {
+              const resp = await callMcpTool('timesfm', 'forecast_metric', {
+                device_id: role.deviceId,
+                metric: ROLE_METRIC,
+                horizon_minutes: ROLE_HORIZON_MINUTES,
+                freq: ROLE_FREQ,
+              })
+              const structured = extractMcpStructured(resp)
+              if (!isValidForecastPayload(structured)) return null
+              const { q50 } = parseQuantileSeries(
+                structured.quantiles as Record<string, unknown> | undefined,
+              )
+              const forecast = structured.forecast as number[]
+              const q50Line = q50.length === forecast.length ? q50 : forecast
+              return {
+                name: role.name,
+                color: role.color,
+                q50: q50Line,
+              } satisfies LiveRoleSeries
+            } catch {
+              return null
+            }
+          }),
+        )
+        if (cancelled) return
+
+        const roles = results.filter((r): r is LiveRoleSeries => r != null)
+        if (roles.length === 0) return
+
+        const pointCount = Math.min(...roles.map((r) => r.q50.length))
+        if (pointCount === 0) return
+
+        const aligned = roles.map((r) => ({
+          ...r,
+          q50: r.q50.slice(0, pointCount),
+        }))
+
+        setRoleForecastOption(
+          buildRoleForecastOptionFromLive(buildHourlyLabels(pointCount), aligned),
+        )
+      } catch {
+        /* MCP 不可用时留空，不展示静态图 */
+      } finally {
+        if (!cancelled) setRoleForecastLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     const html = document.documentElement
@@ -92,8 +257,6 @@ export default function StoreSalesDashboard() {
     return () => window.clearInterval(id)
   }, [])
 
-  const predictionForecastOption = useMemo(() => buildPredictionForecastOption(), [])
-  const roleForecastOption = useMemo(() => buildRoleForecastOption(), [])
   const rolePieOption = useMemo(() => buildRolePieOption(), [])
   const hourlyBarOption = useMemo(() => buildHourlyBarOption(), [])
   const quantileOption = useMemo(() => buildHorizonQuantileOption(horizonKey), [horizonKey])
@@ -200,12 +363,29 @@ export default function StoreSalesDashboard() {
                 <h3>
                   <span className="icon-cube" />
                   TimesFM 负载预测
+                  {liveSource ? (
+                    <small style={{ marginLeft: 8, fontSize: '0.55em', color: '#6acca3' }}>
+                      实时 · {liveSource}
+                    </small>
+                  ) : null}
                 </h3>
                 <div className="chart prediction-chart">
-                  <ChartBox options={predictionForecastOption} />
+                  {liveForecastOption ? (
+                    <ChartBox options={liveForecastOption} />
+                  ) : (
+                    <div className="prediction-chart__empty">
+                      {liveForecastLoading ? '预测数据加载中…' : '暂无 TimesFM 预测数据'}
+                    </div>
+                  )}
                 </div>
                 <div className="chart prediction-chart prediction-chart--role">
-                  <ChartBox options={roleForecastOption} />
+                  {roleForecastOption ? (
+                    <ChartBox options={roleForecastOption} />
+                  ) : (
+                    <div className="prediction-chart__empty">
+                      {roleForecastLoading ? '分区预测加载中…' : '暂无分区预测数据'}
+                    </div>
+                  )}
                 </div>
                 <p className="prediction-note">{P.capacity.recommendation}</p>
               </div>

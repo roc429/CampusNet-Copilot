@@ -12,6 +12,30 @@
   overflow: hidden;
 }
 
+.login-page--new-bg {
+  background: #e8f4fc url('../assets/new_bg.png') center center / cover no-repeat;
+}
+
+.login-layout--panel-only {
+  grid-template-columns: 1fr;
+  justify-items: end;
+}
+
+.login-layout--panel-only .login-panel {
+  margin-right: clamp(32px, 8vw, 140px);
+}
+
+@media (max-width: 900px) {
+  .login-layout--panel-only {
+    justify-items: center;
+    padding: clamp(56px, 10vh, 72px) clamp(14px, 4vw, 20px) clamp(20px, 4vh, 32px);
+  }
+
+  .login-layout--panel-only .login-panel {
+    margin-right: auto;
+  }
+}
+
 .corner-triangles {
   position: absolute;
   width: clamp(56px, 8vw, 82px);

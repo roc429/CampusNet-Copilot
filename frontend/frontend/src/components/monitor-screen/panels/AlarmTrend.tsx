@@ -22,7 +22,7 @@ export default function AlarmTrend() {
   }, [load])
 
   return (
-    <ItemWrap title="12路AP状态一览" className="ms-ap-panel">
+    <ItemWrap title="AP 状态一览" className="ms-ap-panel">
       <div className="ms-ap-grid">
         {items.map((ap) => {
           const tone = loadTone(ap.loadPct, ap.online)
@@ -31,13 +31,11 @@ export default function AlarmTrend() {
               <div className="ms-ap-card__id">{ap.id}</div>
               <div className={`ms-ap-card__dot ms-ap-card__dot--${tone}`} />
               <div className="ms-ap-card__status">{ap.online ? '在线' : '离线'}</div>
-              <div className="ms-ap-card__role">{ap.role}</div>
+              <div className="ms-ap-card__role">{ap.zone}</div>
               <div className="ms-ap-card__metric">
                 {ap.online ? `${ap.loadPct.toFixed(1)}%` : '--'}
               </div>
-              <div className="ms-ap-card__sub">
-                {ap.online ? `SW${ap.dpid}` : '未接入'}
-              </div>
+              <div className="ms-ap-card__sub">{ap.online ? ap.uplink : '未接入'}</div>
             </div>
           )
         })}

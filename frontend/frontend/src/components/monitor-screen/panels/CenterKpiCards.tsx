@@ -9,20 +9,7 @@ import {
 
 import ItemWrap from '../ItemWrap'
 import { fetchTelemetryKpi, type TelemetryKpi } from '../monitorScreenApi'
-import { TELEMETRY_STATIC } from '../telemetryStaticData'
 import { usePolling } from '../usePolling'
-
-const MOCK_KPI: TelemetryKpi = {
-  avgLoadPct: TELEMETRY_STATIC.kpi.avgLoadPct,
-  peakApLoadPct: TELEMETRY_STATIC.kpi.peakApLoadPct,
-  totalThroughputMbps: TELEMETRY_STATIC.kpi.totalThroughputMbps,
-  abnormalPortCount: TELEMETRY_STATIC.kpi.abnormalPortCount,
-  portCount: TELEMETRY_STATIC.kpi.portCount,
-  updatedAt: TELEMETRY_STATIC.kpi.updatedAtIso
-    ? new Date(TELEMETRY_STATIC.kpi.updatedAtIso).getTime() / 1000
-    : null,
-  updatedAtIso: TELEMETRY_STATIC.kpi.updatedAtIso,
-}
 
 type CardConfig = {
   title: string
@@ -79,10 +66,10 @@ function StatCard({
   data,
 }: {
   config: CardConfig
-  data: TelemetryKpi
+  data: TelemetryKpi | null
 }) {
   const Icon = config.icon
-  const formatted = config.format(data[config.key])
+  const formatted = data ? config.format(data[config.key]) : null
 
   return (
     <div className={`ms-stat-card ms-stat-card--${config.tone}`}>
@@ -94,13 +81,17 @@ function StatCard({
           <div className="ms-stat-card__title">{config.title}</div>
           <div className="ms-stat-card__subtitle">{config.subtitle}</div>
           <div className="ms-stat-card__metric">
-            <span
-              className="ms-stat-card__value"
-              style={config.valueColor ? { color: config.valueColor } : undefined}
-            >
-              {formatted.value}
-            </span>
-            <span className="ms-stat-card__unit">{formatted.unit}</span>
+            {formatted ? (
+              <>
+                <span
+                  className="ms-stat-card__value"
+                  style={config.valueColor ? { color: config.valueColor } : undefined}
+                >
+                  {formatted.value}
+                </span>
+                <span className="ms-stat-card__unit">{formatted.unit}</span>
+              </>
+            ) : null}
           </div>
           {config.key === 'abnormalPortCount' ? (
             <div className="ms-stat-card__hint">load≥80% 等</div>
@@ -112,7 +103,7 @@ function StatCard({
 }
 
 export default function CenterKpiCards() {
-  const [data, setData] = useState<TelemetryKpi>(MOCK_KPI)
+  const [data, setData] = useState<TelemetryKpi | null>(null)
 
   const load = useCallback(async () => {
     const res = await fetchTelemetryKpi()

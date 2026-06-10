@@ -1,143 +1,273 @@
 import {
-  Activity,
-  AlertTriangle,
   ArrowRight,
+  BarChart3,
   Check,
+  LineChart,
   Network,
-  RefreshCw,
-  ScanSearch,
-  Settings2,
-  Sparkles,
-  Target,
-  Waypoints,
+  Wrench,
 } from 'lucide-react'
-import { useEffect, useRef } from 'react'
-import lottie from 'lottie-web'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import brandLogo from '../assets/logo.png'
-import heroAnimation from '../assets/Man and robot with computers sitting together in workplace.json'
-import '../App.css'
+import heroAnimation from '../assets/1animation.svg'
+import iconGraphRag from '../assets/Hybrid GraphRAG.svg'
+import iconMcp from '../assets/MCP标准协议.svg'
+import iconNemo from '../assets/NeMo安全护栏.svg'
+import iconSdn from '../assets/SDN仿真验证.svg'
+import iconTimesFm from '../assets/TimesFM预测模型.svg'
+import iconSecurity from '../assets/双回路安全验证.svg'
+import iconAgents from '../assets/多智能体协同.svg'
+import iconTopology from '../assets/智能感知拓扑.svg'
+import iconSelfService from '../assets/自助服务交互.svg'
+import iconDefense from '../assets/预警式防御.svg'
+import iconTroubleshoot from '../assets/故障自动排查.svg'
+import iconSecurityAudit from '../assets/安全防护审计.svg'
+import iconTrafficAlert from '../assets/流量预警通知.svg'
+import iconSelfExperience from '../assets/自动服务体验.svg'
+import statAvailability from '../assets/系统可用性.svg'
+import statEfficiency from '../assets/运维效率提升.svg'
+import statPatrol from '../assets/智能监控守护.svg'
+import statAiOps from '../assets/驱动智能运维.svg'
+import scenarioVisual from '../assets/应用场景.png'
+import dashboardVisual from '../assets/全局可视.png'
+import assistantMascot from '../assets/小助手.svg'
+import './HomePage.css'
+
+const NAV = [
+  { id: 'hero', label: '首页' },
+  { id: 'features', label: '产品功能' },
+  { id: 'tech', label: '核心技术' },
+  { id: 'dashboard', label: '解决方案' },
+  { id: 'scenarios', label: '应用场景' },
+  { id: 'cta', label: '关于我们' },
+] as const
+
+type SectionId = (typeof NAV)[number]['id']
+
+const HERO_CHECKS = [
+  '智能体协同联动运维闭环',
+  '拓扑知识图谱全域感知',
+  '预警式防御主动保障策略',
+] as const
+
+const STATS = [
+  { value: '99.99%', label: '系统可用性', icon: statAvailability, theme: 'blue' },
+  { value: '80%+', label: '运维效率提升', icon: statEfficiency, theme: 'green' },
+  { value: '7×24h', label: '智能巡检守护', icon: statPatrol, theme: 'purple' },
+  { value: 'AI', label: '驱动智能运维', icon: statAiOps, theme: 'amber' },
+] as const
 
 const FEATURES = [
   {
-    Icon: Network,
-    title: '分布式诊断',
-    desc: '多智能体协同感知，在校园网络边缘实时捕获异常信号，通过分布式架构减轻核心处理压力，提升诊断颗粒度。',
+    icon: iconTopology,
+    title: '智能拓扑感知',
+    desc: '自动发现网络设备与链路关系，实时感知拓扑变化与节点状态。',
   },
   {
-    Icon: Waypoints,
-    title: '推理链路',
-    desc: '基于混合图检索增强技术 (Graph-RAG)，建立全路径故障推理模型，精准锁定从接入层到核心层的故障链。',
+    icon: iconDefense,
+    title: '预警式防御',
+    desc: 'TimesFM 时序预测结合阈值告警，在故障发生前主动预警。',
   },
   {
-    Icon: Settings2,
-    title: '自适应策略',
-    desc: '智能编排运维工具，根据实时流量预测与风险评估，动态生成修复方案，实现策略的毫秒级自适应调整。',
+    icon: iconAgents,
+    title: '多智能体协同',
+    desc: 'Chat / Retriever / Telemetry / Diagnosis 等 Agent 分工协作。',
+  },
+  {
+    icon: iconSelfService,
+    title: '自助服务交互',
+    desc: '自然语言提问即可触发诊断，进度可视化与报告一键导出。',
+  },
+  {
+    icon: iconSecurity,
+    title: '双向安全验证',
+    desc: 'SecurityGuard 语义审计 + SDN dry-run 仿真后再执行修复。',
   },
 ] as const
 
-const FLOW_STEPS = [
-  { Icon: Activity, title: '数据采集', en: 'COLLECTION' },
-  { Icon: ScanSearch, title: '智能分析', en: 'ANALYSIS' },
-  { Icon: Target, title: '根因定位', en: 'LOCATION' },
-  { Icon: RefreshCw, title: '处置闭环', en: 'DISPOSAL' },
+const DASHBOARD_ITEMS = [
+  { Icon: Network, label: '全域拓扑可视化' },
+  { Icon: LineChart, label: '实时流量监控' },
+  { Icon: BarChart3, label: '智能告警分析' },
+  { Icon: Wrench, label: '运维工单管理' },
 ] as const
 
-const CHECKLIST = [
-  '毫秒级全链路时序数据采集',
-  '知识增强的大模型深度分析',
-  '全自动化剧本编排联动处置',
+const TECH_STACK = [
+  { icon: iconGraphRag, title: 'Hybrid GraphRAG', desc: '混合图检索 + 语义证据链' },
+  { icon: iconMcp, title: 'MCP 标准协议', desc: 'Prometheus / NetBox / Grafana 工具总线' },
+  { icon: iconTimesFm, title: 'TimesFM 预测引擎', desc: '负载与异常窗口时序预测' },
+  { icon: iconNemo, title: 'NeMo 安全护栏', desc: '高风险指令人工审批与审查' },
+  { icon: iconSdn, title: 'SDN 仿真验证', desc: 'Mininet 沙箱 dry-run 后再下发' },
+] as const
+
+const SCENARIOS = [
+  {
+    icon: iconTroubleshoot,
+    title: '故障自动排查',
+    descLines: ['智能诊断根因', '自动修复闭环'],
+  },
+  {
+    icon: iconSecurityAudit,
+    title: '安全防护审计',
+    descLines: ['恶意变更拦截', '全链路安全审计'],
+  },
+  {
+    icon: iconTrafficAlert,
+    title: '流量预警感知',
+    descLines: ['高并发预测预警', '态势感知调度'],
+  },
+  {
+    icon: iconSelfExperience,
+    title: '自助服务体验',
+    descLines: ['一键报障诊断', '知识智能推荐'],
+  },
 ] as const
 
 function HomePage() {
-  const heroAnimationRef = useRef<HTMLDivElement | null>(null)
+  const navigate = useNavigate()
+  const sectionRefs = useRef<Partial<Record<SectionId, HTMLElement>>>({})
+  const [activeSection, setActiveSection] = useState<SectionId>('hero')
+
+  const goLogin = useCallback(() => {
+    navigate('/login')
+  }, [navigate])
+
+  const scrollTo = useCallback((id: SectionId) => {
+    sectionRefs.current[id]?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
 
   useEffect(() => {
-    if (!heroAnimationRef.current) {
-      return
-    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
+        if (visible?.target.id) {
+          setActiveSection(visible.target.id as SectionId)
+        }
+      },
+      { threshold: [0.2, 0.4, 0.6] },
+    )
 
-    const animation = lottie.loadAnimation({
-      container: heroAnimationRef.current,
-      renderer: 'svg',
-      loop: true,
-      autoplay: true,
-      animationData: heroAnimation,
+    NAV.forEach(({ id }) => {
+      const el = sectionRefs.current[id]
+      if (el) observer.observe(el)
     })
 
-    return () => {
-      animation.destroy()
-    }
+    return () => observer.disconnect()
   }, [])
 
   return (
-    <div className="page">
-      <header className="header">
-        <div className="container header__inner">
-          <div className="header__brand">
-            <img src={brandLogo} alt="" className="header__brand-logo" draggable={false} />
-            <span className="logo">智网学伴</span>
-          </div>
-          <nav className="menu">
-            <a href="#capabilities">核心能力</a>
-            <a href="#workflow">闭环架构</a>
+    <div className="cn-home">
+      <header className="cn-home__header">
+        <div className="cn-home__container cn-home__header-inner">
+          <button type="button" className="cn-home__brand" onClick={() => scrollTo('hero')}>
+            <img src={brandLogo} alt="" draggable={false} className="cn-home__brand-logo" />
+            <span className="cn-home__brand-name">智网学伴</span>
+          </button>
+
+          <nav className="cn-home__nav" aria-label="主导航">
+            {NAV.map(({ id, label }) => (
+              <button
+                key={id}
+                type="button"
+                className={activeSection === id ? 'is-active' : ''}
+                onClick={() => scrollTo(id)}
+              >
+                {label}
+              </button>
+            ))}
           </nav>
-          <div className="header__actions">
-            <Link to="/login" className="btn-primary nav-link-button">
-              进入系统
-            </Link>
-          </div>
+
+          <Link to="/login" className="cn-home__header-btn">
+            登录 / 注册
+          </Link>
         </div>
       </header>
 
-      <main>
-        <section className="section hero">
-          <div className="container hero__inner">
-            <div className="hero__copy">
-              <div className="hero__badge">
-                <Sparkles className="hero__badge-icon" size={15} strokeWidth={2} aria-hidden />
-                智能体驱动的网络运维
+      <main className="cn-home__main">
+        {/* Hero */}
+        <section
+          id="hero"
+          ref={(el) => {
+            if (el) sectionRefs.current.hero = el
+          }}
+          className="cn-home__hero"
+        >
+          <div className="cn-home__hero-bg" aria-hidden="true" />
+          <div className="cn-home__container cn-home__hero-grid">
+            <div className="cn-home__hero-copy">
+              <div className="cn-home__hero-title-row">
+                <h1>智网学伴</h1>
+                <span className="cn-home__badge">CampusNet Copilot</span>
               </div>
-              <h1 className="hero__title">
-                <span className="hero__title-line hero__title-line--dark">面向校园网络的</span>
-                <span className="hero__title-line hero__title-line--blue">智能运维助手</span>
-              </h1>
-              <p className="hero__lead">
-                通过多智能体、混合图检索增强、时序预测与工具编排，实现校园网络故障分析、根因追踪、风险预警与联动处置。
+              <p className="cn-home__hero-tagline">拓扑感知 · 预警防御 · 智能运维</p>
+              <p className="cn-home__hero-desc">
+                基于 Agentic AI 与预置式赋权的拓扑感知型校园网智能运维系统
               </p>
-              <div className="hero__buttons">
-                <Link to="/login" className="home-cta-btn home-cta-btn--primary nav-link-button">
-                  进入演示
-                  <ArrowRight size={18} strokeWidth={2} aria-hidden />
-                </Link>
+              <ul className="cn-home__hero-checks">
+                {HERO_CHECKS.map((item) => (
+                  <li key={item}>
+                    <Check size={16} strokeWidth={2.5} aria-hidden="true" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <div className="cn-home__hero-actions">
+                <button type="button" className="cn-home__btn cn-home__btn--primary" onClick={goLogin}>
+                  立即体验
+                </button>
                 <button
                   type="button"
-                  className="home-cta-btn home-cta-btn--secondary"
-                  onClick={() => document.getElementById('capabilities')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="cn-home__btn cn-home__btn--outline"
+                  onClick={() => scrollTo('features')}
                 >
                   了解更多
+                  <ArrowRight size={16} aria-hidden="true" />
                 </button>
               </div>
             </div>
-            <div className="hero__visual" aria-hidden="true">
-              <div ref={heroAnimationRef} className="hero-animation" />
+            <div className="cn-home__hero-visual">
+              <img src={heroAnimation} alt="" draggable={false} className="cn-home__hero-animation" />
+            </div>
+          </div>
+
+          <div className="cn-home__container">
+            <div className="cn-home__stats">
+              {STATS.map(({ value, label, icon, theme }) => (
+                <div key={label} className={`cn-home__stat cn-home__stat--${theme}`}>
+                  <span className="cn-home__stat-icon">
+                    <img src={icon} alt="" className="cn-home__stat-icon-img" draggable={false} />
+                  </span>
+                  <div>
+                    <strong>{value}</strong>
+                    <span>{label}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        <section id="capabilities" className="section section-light">
-          <div className="container">
-            <div className="section-title">
-              <h2>核心赋能能力</h2>
-              <p>
-                融合 AI 大模型与网络观测数据，通过分布式智能体架构，实现从感知到决策的全方位自动化。
-              </p>
+        {/* Core Features */}
+        <section
+          id="features"
+          ref={(el) => {
+            if (el) sectionRefs.current.features = el
+          }}
+          className="cn-home__section cn-home__section--features"
+        >
+          <div className="cn-home__container">
+            <div className="cn-home__section-head">
+              <span className="cn-home__section-label">CORE FEATURES</span>
+              <h2>核心能力</h2>
+              <p>融合 GraphRAG、MCP 工具总线与 TimesFM 预测，打造校园网智能运维闭环。</p>
             </div>
-            <div className="feature-grid">
-              {FEATURES.map(({ Icon, title, desc }) => (
-                <article key={title} className="feature-card feature-card--design">
-                  <span className="feature-card__icon-wrap" aria-hidden>
-                    <Icon className="feature-card__svg" size={22} strokeWidth={1.75} />
+            <div className="cn-home__feature-grid">
+              {FEATURES.map(({ icon, title, desc }) => (
+                <article key={title} className="cn-home__feature-card">
+                  <span className="cn-home__feature-icon">
+                    <img src={icon} alt="" draggable={false} />
                   </span>
                   <h3>{title}</h3>
                   <p>{desc}</p>
@@ -147,71 +277,132 @@ function HomePage() {
           </div>
         </section>
 
-        <section id="workflow" className="section section-workflow">
-          <div className="container home-workflow">
-            <div className="home-workflow__intro">
-              <h2 className="home-workflow__title">全流程闭环运维架构</h2>
-              <p className="home-workflow__desc">
-                从海量数据识别到自动化处置，智网学伴构建了一套严密的逻辑闭环。不仅能发现问题，更懂如何解决问题。
+        {/* Dashboard Preview */}
+        <section
+          id="dashboard"
+          ref={(el) => {
+            if (el) sectionRefs.current.dashboard = el
+          }}
+          className="cn-home__section cn-home__section--dashboard"
+        >
+          <div className="cn-home__container cn-home__dashboard-grid">
+            <div className="cn-home__dashboard-copy">
+              <h2>全局可视 · 一屏掌控</h2>
+              <p>
+                实时汇聚 Prometheus 指标、NetBox 拓扑与 Agent 诊断结果，运维人员可在统一控制台完成监控、分析与处置。
               </p>
-              <ul className="home-workflow__list">
-                {CHECKLIST.map((text) => (
-                  <li key={text} className="home-workflow__list-item">
-                    <span className="home-workflow__check" aria-hidden>
-                      <Check size={14} strokeWidth={3} />
+              <ul className="cn-home__dashboard-list">
+                {DASHBOARD_ITEMS.map(({ Icon, label }) => (
+                  <li key={label}>
+                    <span className="cn-home__dashboard-list-icon">
+                      <Icon size={28} strokeWidth={1.75} aria-hidden="true" />
                     </span>
-                    {text}
+                    {label}
                   </li>
                 ))}
               </ul>
+              <button type="button" className="cn-home__btn cn-home__btn--primary" onClick={goLogin}>
+                探索控制台
+                <ArrowRight size={16} aria-hidden="true" />
+              </button>
             </div>
+            <div className="cn-home__dashboard-preview" aria-hidden="true">
+              <img src={dashboardVisual} alt="" draggable={false} />
+            </div>
+          </div>
+        </section>
 
-            <div className="home-dashboard" aria-hidden>
-              <div className="home-dashboard__flow">
-                {FLOW_STEPS.map(({ Icon, title, en }, idx) => (
-                  <div key={en} className="home-dashboard__flow-track">
-                    <div className="home-flow-step">
-                      <div className="home-flow-step__icon">
-                        <Icon size={20} strokeWidth={1.65} />
-                      </div>
-                      <div className="home-flow-step__title">{title}</div>
-                      <div className="home-flow-step__en">{en}</div>
-                    </div>
-                    {idx < FLOW_STEPS.length - 1 ? <div className="home-flow-connector" /> : null}
-                  </div>
+        {/* Tech Stack */}
+        <section
+          id="tech"
+          ref={(el) => {
+            if (el) sectionRefs.current.tech = el
+          }}
+          className="cn-home__section cn-home__section--tech"
+        >
+          <div className="cn-home__container">
+            <div className="cn-home__section-head cn-home__section-head--compact">
+              <h2>技术驱动 · 创新引领</h2>
+            </div>
+            <div className="cn-home__tech-grid">
+              {TECH_STACK.map(({ icon, title, desc }) => (
+                <article key={title} className="cn-home__tech-item">
+                  <span className="cn-home__tech-icon">
+                    <img src={icon} alt="" draggable={false} />
+                  </span>
+                  <h3>{title}</h3>
+                  <p>{desc}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Scenarios */}
+        <section
+          id="scenarios"
+          ref={(el) => {
+            if (el) sectionRefs.current.scenarios = el
+          }}
+          className="cn-home__section cn-home__section--scenarios"
+        >
+          <div className="cn-home__container">
+            <div className="cn-home__scenario-layout">
+              <div className="cn-home__scenario-head">
+                <span className="cn-home__section-label">SCENARIOS</span>
+                <h2>应用场景</h2>
+                <p>覆盖校园网络运维全场景，满足多角色需求</p>
+              </div>
+
+              <div className="cn-home__scenario-cards">
+                {SCENARIOS.map(({ icon, title, descLines }) => (
+                  <article key={title} className="cn-home__scenario-card">
+                    <span className="cn-home__scenario-icon">
+                      <img src={icon} alt="" draggable={false} />
+                    </span>
+                    <h3>{title}</h3>
+                    {descLines.map((line) => (
+                      <p key={line}>{line}</p>
+                    ))}
+                  </article>
                 ))}
               </div>
 
-              <div className="home-dashboard__panels">
-                <div className="home-panel home-panel--latency">
-                  <div className="home-panel__head">
-                    <span className="home-panel__head-title">NETWORK LATENCY</span>
-                    <span className="home-panel__live">LIVE</span>
-                  </div>
-                  <div className="home-latency-bars">
-                    {[38, 52, 41, 48, 88].map((h, i) => (
-                      <div key={i} className={`home-latency-bar ${i === 4 ? 'home-latency-bar--peak' : ''}`}>
-                        <span style={{ height: `${h}%` }} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="home-panel home-panel--alert">
-                  <div className="home-alert__row">
-                    <AlertTriangle className="home-alert__icon" size={22} strokeWidth={2} />
-                    <span className="home-alert__text">根因检测：核心交换机负载异常</span>
-                  </div>
-                  <div className="home-confidence">
-                    <div className="home-confidence__bar">
-                      <span className="home-confidence__fill" />
-                    </div>
-                    <span className="home-confidence__label">置信度: 98.4%</span>
-                  </div>
-                </div>
+              <div className="cn-home__scenario-visual" aria-hidden="true">
+                <img src={scenarioVisual} alt="" draggable={false} />
               </div>
             </div>
           </div>
+        </section>
+
+        {/* Footer CTA */}
+        <section
+          id="cta"
+          ref={(el) => {
+            if (el) sectionRefs.current.cta = el
+          }}
+          className="cn-home__cta"
+        >
+          <div className="cn-home__container cn-home__cta-grid">
+            <div className="cn-home__cta-copy">
+              <h2>智网学伴 让校园网络运维更智能、更高效、更安全</h2>
+              <p>立即登录体验 Agentic AI 驱动的校园网智能运维演示系统</p>
+              <div className="cn-home__cta-actions">
+                <button type="button" className="cn-home__btn cn-home__btn--light" onClick={goLogin}>
+                  立即体验系统
+                </button>
+                <button type="button" className="cn-home__btn cn-home__btn--ghost" onClick={goLogin}>
+                  申请演示
+                </button>
+              </div>
+            </div>
+            <div className="cn-home__cta-mascot">
+              <img src={assistantMascot} alt="" draggable={false} />
+            </div>
+          </div>
+          <footer className="cn-home__footer-note">
+            智网学伴 · CampusNet-Copilot · C4-2026
+          </footer>
         </section>
       </main>
     </div>

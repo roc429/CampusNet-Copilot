@@ -11,12 +11,27 @@ import { useNavigate } from 'react-router-dom'
 import assistantMascot from '../assets/小助手.svg'
 import userAvatar from '../assets/用户.svg'
 import profileCenterIcon from '../assets/个人中心.svg'
+import {
+  extractEventId,
+  fetchAgentStatus,
+  fetchReport,
+  postChat,
+  postTaskApprove,
+  postTaskReject,
+  type AgentProgressItem,
+  type ApprovalCommand,
+} from '../api/agentApi'
+import AgentProgressPanel from '../components/AgentProgressPanel.tsx'
+import { diagnosisIntroText } from '../components/agentFlowCards.ts'
 import KnowledgePanel from '../components/KnowledgePanel.tsx'
 import MonitoringDashboard from '../components/MonitoringDashboard.tsx'
+import ReportCenterPanel, { persistReport } from '../components/ReportCenterPanel.tsx'
 import StoreSalesDashboard from '../components/store-sales-dashboard/StoreSalesDashboard.tsx'
 import './AssistantPage.css'
 
 type Role = 'user' | 'assistant'
+
+type ChatMode = 'general' | 'diagnosis'
 
 type ChatMessage = {
   id: string
@@ -28,6 +43,17 @@ type ChatMessage = {
   reasoning?: string
   /** 为 true 时保持「思考过程」展开，便于流式展示 */
   streaming?: boolean
+  /** 智能诊断模式：Agent 任务 ID */
+  eventId?: string
+  agentProgress?: AgentProgressItem[]
+  agentStatus?: string
+  reportReady?: boolean
+  reportText?: string
+  approvalRequired?: boolean
+  approvalCommands?: ApprovalCommand[]
+  approvalBusy?: boolean
+  approvalSubmitted?: 'approved' | 'rejected' | null
+  approvalError?: string | null
 }
 
 type NavKey = 'ai' | 'monitor' | 'capacity' | 'knowledge' | 'report'
@@ -129,17 +155,15 @@ function streamErrorMessage(obj: Record<string, unknown>): string {
   return '模型服务返回错误'
 }
 
-const PLACEHOLDER_COPY: Record<Exclude<NavKey, 'ai' | 'monitor' | 'knowledge' | 'capacity'>, { title: string; desc: string }> = {
-  report: {
-    title: '报告中心',
-    desc: '这里将生成与导出运维报告、运行月报与专项分析。可后续对接报表模板与定时任务。',
-  },
-}
+const DIAGNOSIS_SUGGESTIONS = [
+  '302考场考试系统卡顿，是不是AP负载太高导致的？',
+  '教学楼 AP 丢包率异常，帮我诊断一下',
+  '核心交换机端口拥塞预警分析',
+]
 
 function AssistantPage() {
   const navigate = useNavigate()
   const [activeNav, setActiveNav] = useState<NavKey>('ai')
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeSessionId, setActiveSessionId] = useState('s1')
   const [messagesBySession, setMessagesBySession] = useState<Record<string, ChatMessage[]>>({
     s1: initialMessages,
@@ -148,7 +172,15 @@ function AssistantPage() {
   const [input, setInput] = useState('')
   const [model, setModel] = useState<QwenModelId>('qwen-flash')
   const [deepThink, setDeepThink] = useState(false)
+  const [chatMode, setChatMode] = useState<ChatMode>('general')
   const [sending, setSending] = useState(false)
+  const [reportNavEventId, setReportNavEventId] = useState<string | null>(null)
+  const [activePoll, setActivePoll] = useState<{
+    sid: string
+    msgId: string
+    eventId: string
+    question: string
+  } | null>(null)
   const listRef = useRef<HTMLDivElement | null>(null)
   const userLabel = localStorage.getItem('user_email')?.split('@')[0] ?? '用户'
 
@@ -162,6 +194,128 @@ function AssistantPage() {
   useEffect(() => {
     scrollToBottom()
   }, [messages, scrollToBottom])
+
+  useEffect(() => {
+    if (!activePoll) {
+      return
+    }
+    let cancelled = false
+    const tick = async () => {
+      if (cancelled) {
+        return
+      }
+      try {
+        const status = await fetchAgentStatus(activePoll.eventId)
+        if (cancelled) {
+          return
+        }
+        setMessagesBySession((prev) => ({
+          ...prev,
+          [activePoll.sid]: (prev[activePoll.sid] ?? []).map((m) =>
+            m.id === activePoll.msgId
+              ? {
+                  ...m,
+                  agentProgress: Array.isArray(status.progress) ? status.progress : [],
+                  agentStatus: status.status,
+                  reportReady: Boolean(status.report_ready),
+                  reportText: status.report_text ?? m.reportText,
+                  streaming: !status.report_ready,
+                  approvalRequired: Boolean(status.approval_required),
+                  approvalCommands: status.approval_commands ?? m.approvalCommands ?? [],
+                }
+              : m,
+          ),
+        }))
+        if (status.report_ready) {
+          setActivePoll(null)
+          let reportText = status.report_text
+          if (!reportText) {
+            try {
+              const report = await fetchReport(activePoll.eventId)
+              reportText = report.report_text
+            } catch {
+              reportText = undefined
+            }
+          }
+          if (reportText) {
+            persistReport(activePoll.eventId, activePoll.question)
+            setMessagesBySession((prev) => ({
+              ...prev,
+              [activePoll.sid]: (prev[activePoll.sid] ?? []).map((m) =>
+                m.id === activePoll.msgId
+                  ? { ...m, reportText, reportReady: true, streaming: false }
+                  : m,
+              ),
+            }))
+          }
+        }
+      } catch {
+        /* Agent 未启动时静默重试 */
+      }
+    }
+    void tick()
+    const id = window.setInterval(() => void tick(), 1000)
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+  }, [activePoll])
+
+  async function handleApprovalDecision(
+    sid: string,
+    msgId: string,
+    eventId: string,
+    approved: boolean,
+  ) {
+    const actor =
+      localStorage.getItem('user_email')?.split('@')[0] ??
+      localStorage.getItem('user_email') ??
+      'user'
+
+    setMessagesBySession((prev) => ({
+      ...prev,
+      [sid]: (prev[sid] ?? []).map((m) =>
+        m.id === msgId
+          ? { ...m, approvalBusy: true, approvalError: null }
+          : m,
+      ),
+    }))
+
+    try {
+      if (approved) {
+        await postTaskApprove(eventId, actor)
+      } else {
+        await postTaskReject(eventId, actor)
+      }
+      setMessagesBySession((prev) => ({
+        ...prev,
+        [sid]: (prev[sid] ?? []).map((m) =>
+          m.id === msgId
+            ? {
+                ...m,
+                approvalBusy: false,
+                approvalRequired: false,
+                approvalSubmitted: approved ? 'approved' : 'rejected',
+                approvalError: null,
+              }
+            : m,
+        ),
+      }))
+    } catch (e) {
+      setMessagesBySession((prev) => ({
+        ...prev,
+        [sid]: (prev[sid] ?? []).map((m) =>
+          m.id === msgId
+            ? {
+                ...m,
+                approvalBusy: false,
+                approvalError: e instanceof Error ? e.message : '审批提交失败',
+              }
+            : m,
+        ),
+      }))
+    }
+  }
 
   function handleLogout() {
     localStorage.removeItem('access_token')
@@ -181,6 +335,73 @@ function AssistantPage() {
     setMessagesBySession({ s1: initialMessages })
   }
 
+  async function sendDiagnosisMessage(text: string, sid: string) {
+    const userId = localStorage.getItem('user_email') ?? 'user_001'
+    const userMsgId = `u${Date.now()}`
+    const pendingId = `p${Date.now()}`
+
+    setMessagesBySession((prev) => {
+      const cur = prev[sid] ?? initialMessages
+      return {
+        ...prev,
+        [sid]: [
+          ...cur,
+          { id: userMsgId, role: 'user', content: text, at: Date.now() },
+          {
+            id: pendingId,
+            role: 'assistant',
+            content: '正在创建网络诊断任务…',
+            at: Date.now(),
+            streaming: true,
+            agentProgress: [],
+          },
+        ],
+      }
+    })
+
+    try {
+      const { answer } = await postChat(userId, text)
+      const eventId = extractEventId(answer)
+      setMessagesBySession((prev) => ({
+        ...prev,
+        [sid]: (prev[sid] ?? []).map((m) =>
+          m.id === pendingId
+            ? {
+                ...m,
+                content: diagnosisIntroText(eventId ?? undefined),
+                eventId: eventId ?? undefined,
+                streaming: Boolean(eventId),
+                at: Date.now(),
+              }
+            : m,
+        ),
+      }))
+      if (eventId) {
+        setActivePoll({ sid, msgId: pendingId, eventId, question: text })
+      } else {
+        setMessagesBySession((prev) => ({
+          ...prev,
+          [sid]: (prev[sid] ?? []).map((m) =>
+            m.id === pendingId ? { ...m, streaming: false } : m,
+          ),
+        }))
+      }
+    } catch (e) {
+      setMessagesBySession((prev) => ({
+        ...prev,
+        [sid]: (prev[sid] ?? []).map((m) =>
+          m.id === pendingId
+            ? {
+                ...m,
+                content: `诊断请求失败：${e instanceof Error ? e.message : '未知错误'}。请确认 Agent 引擎 (:8002) 已启动。`,
+                streaming: false,
+              }
+            : m,
+        ),
+      }))
+    }
+  }
+
   async function sendMessage() {
     const text = input.trim()
     if (!text || sending) {
@@ -190,6 +411,18 @@ function AssistantPage() {
     if (!token) {
       alert('请先登录')
       navigate('/login', { replace: true })
+      return
+    }
+
+    if (chatMode === 'diagnosis') {
+      setInput('')
+      setSending(true)
+      setActivePoll(null)
+      try {
+        await sendDiagnosisMessage(text, activeSessionId)
+      } finally {
+        setSending(false)
+      }
       return
     }
 
@@ -440,6 +673,13 @@ function AssistantPage() {
     }
   }
 
+  function applySuggestion(text: string) {
+    setInput(text)
+    if (text.includes('卡顿') || text.includes('诊断') || text.includes('丢包')) {
+      setChatMode('diagnosis')
+    }
+  }
+
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -448,7 +688,7 @@ function AssistantPage() {
   }
 
   return (
-    <div className={`assistant-app ${sidebarCollapsed ? 'assistant-app--collapsed' : ''}`}>
+    <div className="assistant-app">
       <aside className="assistant-sidebar">
         <div className="assistant-sidebar__profile">
           <div className="assistant-sidebar__profile-bg" aria-hidden="true" />
@@ -505,20 +745,12 @@ function AssistantPage() {
             >
               ⎋
             </button>
-            <button
-              type="button"
-              className="assistant-icon-btn"
-              title={sidebarCollapsed ? '展开侧栏' : '收起侧栏'}
-              onClick={() => setSidebarCollapsed((c) => !c)}
-            >
-              {sidebarCollapsed ? '⟩' : '⟨'}
-            </button>
           </div>
         </div>
       </aside>
 
       <div
-        className={`assistant-main ${activeNav === 'ai' ? 'assistant-main--ai' : ''} ${activeNav === 'monitor' ? 'assistant-main--monitor' : ''} ${activeNav === 'capacity' ? 'assistant-main--capacity' : ''}`}
+        className={`assistant-main ${activeNav === 'ai' ? 'assistant-main--ai' : ''} ${activeNav === 'monitor' ? 'assistant-main--monitor' : ''} ${activeNav === 'capacity' ? 'assistant-main--capacity' : ''} ${activeNav === 'report' ? 'assistant-main--report' : ''}`}
       >
         {activeNav === 'ai' ? (
           <>
@@ -535,7 +767,9 @@ function AssistantPage() {
                 </div>
               </div>
               <p className="assistant-main__subtitle">
-                面向校园网络的智能运维助手，对话由阿里云百炼通义模型生成；支持知识问答与使用指引。
+                {chatMode === 'diagnosis'
+                  ? '智能诊断模式：对接 Agent 引擎，自动调用 MCP 工具链完成拓扑查询、指标分析与报告生成。'
+                  : '面向校园网络的智能运维助手，对话由阿里云百炼通义模型生成；支持知识问答与使用指引。'}
               </p>
             </header>
 
@@ -591,13 +825,80 @@ function AssistantPage() {
                           </details>
                         ) : null}
                         <div className="assistant-bubble__content">{m.content}</div>
+                        {m.eventId ? (
+                          <AgentProgressPanel
+                            progress={m.agentProgress ?? []}
+                            status={m.agentStatus}
+                            reportReady={m.reportReady}
+                            approvalRequired={m.approvalRequired}
+                            approvalCommands={m.approvalCommands}
+                            approvalBusy={m.approvalBusy}
+                            approvalSubmitted={m.approvalSubmitted ?? null}
+                            approvalError={m.approvalError ?? null}
+                            onApprove={
+                              m.approvalRequired && !m.reportReady
+                                ? () =>
+                                    void handleApprovalDecision(
+                                      activeSessionId,
+                                      m.id,
+                                      m.eventId!,
+                                      true,
+                                    )
+                                : undefined
+                            }
+                            onReject={
+                              m.approvalRequired && !m.reportReady
+                                ? () =>
+                                    void handleApprovalDecision(
+                                      activeSessionId,
+                                      m.id,
+                                      m.eventId!,
+                                      false,
+                                    )
+                                : undefined
+                            }
+                          />
+                        ) : null}
+                        {m.reportReady && m.eventId ? (
+                          <button
+                            type="button"
+                            className="assistant-report-cta"
+                            onClick={() => {
+                              setReportNavEventId(m.eventId!)
+                              setActiveNav('report')
+                            }}
+                          >
+                            查看完整诊断报告 →
+                          </button>
+                        ) : null}
                         {m.role === 'assistant' &&
                           m.suggestions &&
                           m.suggestions.length > 0 && (
                             <div className="assistant-bubble__pills">
                               {m.suggestions.map((s) => (
-                                <button key={s} type="button" className="assistant-pill">
+                                <button
+                                  key={s}
+                                  type="button"
+                                  className="assistant-pill"
+                                  onClick={() => applySuggestion(s)}
+                                >
                                   {s}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        {m.role === 'assistant' &&
+                          m.id === 'm0' &&
+                          chatMode === 'diagnosis' && (
+                            <div className="assistant-bubble__pills">
+                              {DIAGNOSIS_SUGGESTIONS.map((s) => (
+                                <button
+                                  key={s}
+                                  type="button"
+                                  className="assistant-pill assistant-pill--diag"
+                                  onClick={() => applySuggestion(s)}
+                                >
+                                  {s.slice(0, 18)}…
                                 </button>
                               ))}
                             </div>
@@ -617,30 +918,48 @@ function AssistantPage() {
             <div className="assistant-input-panel">
               <div className="assistant-input-box">
                 <div className="assistant-input-box__toolbar">
-                  <label className="assistant-select-wrap assistant-select-wrap--grow">
-                    <span className="visually-hidden">模型</span>
-                    <select
-                      className="assistant-select assistant-select--ghost"
-                      value={model}
-                      onChange={(e) => setModel(e.target.value as QwenModelId)}
-                    >
-                      <option value="qwen-flash">通义 · qwen-flash</option>
-                      <option value="qwen-plus">通义 · qwen-plus</option>
-                      <option value="qwen-max">通义 · qwen-max</option>
-                    </select>
-                  </label>
                   <button
                     type="button"
                     className={
-                      deepThink
+                      chatMode === 'diagnosis'
                         ? 'assistant-chip-toggle assistant-chip-toggle--on'
                         : 'assistant-chip-toggle'
                     }
-                    onClick={() => setDeepThink((d) => !d)}
+                    onClick={() => setChatMode((m) => (m === 'diagnosis' ? 'general' : 'diagnosis'))}
                   >
                     <span className="assistant-chip-toggle__knob" aria-hidden="true" />
-                    深度思考
+                    智能诊断
                   </button>
+                  {chatMode === 'general' ? (
+                    <>
+                      <label className="assistant-select-wrap assistant-select-wrap--grow">
+                        <span className="visually-hidden">模型</span>
+                        <select
+                          className="assistant-select assistant-select--ghost"
+                          value={model}
+                          onChange={(e) => setModel(e.target.value as QwenModelId)}
+                        >
+                          <option value="qwen-flash">通义 · qwen-flash</option>
+                          <option value="qwen-plus">通义 · qwen-plus</option>
+                          <option value="qwen-max">通义 · qwen-max</option>
+                        </select>
+                      </label>
+                      <button
+                        type="button"
+                        className={
+                          deepThink
+                            ? 'assistant-chip-toggle assistant-chip-toggle--on'
+                            : 'assistant-chip-toggle'
+                        }
+                        onClick={() => setDeepThink((d) => !d)}
+                      >
+                        <span className="assistant-chip-toggle__knob" aria-hidden="true" />
+                        深度思考
+                      </button>
+                    </>
+                  ) : (
+                    <span className="assistant-mode-hint">Agent :8002 · MCP 工具链</span>
+                  )}
                 </div>
                 <div className="assistant-input-box__compose">
                   <textarea
@@ -670,19 +989,9 @@ function AssistantPage() {
           <StoreSalesDashboard />
         ) : activeNav === 'knowledge' ? (
           <KnowledgePanel />
-        ) : (
-          <div className="assistant-placeholder">
-
-
-            <header className="assistant-placeholder__header">
-              <h1 className="assistant-placeholder__title">{PLACEHOLDER_COPY[activeNav].title}</h1>
-              <p className="assistant-placeholder__desc">{PLACEHOLDER_COPY[activeNav].desc}</p>
-            </header>
-            <div className="assistant-placeholder__card" aria-hidden="true">
-              <div className="assistant-placeholder__grid" />
-            </div>
-          </div>
-        )}
+        ) : activeNav === 'report' ? (
+          <ReportCenterPanel initialEventId={reportNavEventId} />
+        ) : null}
       </div>
     </div>
   )

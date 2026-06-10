@@ -3,13 +3,21 @@ from pathlib import Path
 
 AP_ROLES = frozenset({"teaching_ap", "dorm_ap"})
 LOAD_THRESHOLD = 0.8
-_DEFAULT_CSV = Path(__file__).resolve().parents[4] / "telemetry.csv"
+_REPO_ROOT = Path(__file__).resolve().parents[4]
+# 队长确认 CSV 在 test_data/；兼容旧路径仓库根目录 telemetry.csv
+_DEFAULT_CSV_CANDIDATES = (
+    _REPO_ROOT / "test_data" / "telemetry.csv",
+    _REPO_ROOT / "telemetry.csv",
+)
 
 
 def resolve_telemetry_csv_path(settings_path: str = "") -> Path:
     if settings_path:
         return Path(settings_path).expanduser().resolve()
-    return _DEFAULT_CSV
+    for path in _DEFAULT_CSV_CANDIDATES:
+        if path.is_file():
+            return path
+    return _DEFAULT_CSV_CANDIDATES[0]
 
 
 def compute_telemetry_kpi(csv_path: Path) -> dict:

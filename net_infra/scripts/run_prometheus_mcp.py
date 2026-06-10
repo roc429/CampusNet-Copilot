@@ -5,9 +5,10 @@ from __future__ import annotations
 import os
 import sys
 
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+net_infra_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+repo_root = os.path.dirname(net_infra_root)
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
 
 from mcp_servers.prometheus_mcp.main import mcp, settings  # noqa: E402
 

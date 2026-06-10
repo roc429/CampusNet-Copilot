@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import KnowledgeGraphChart, { type KnowledgeGraphChartHandle } from './KnowledgeGraphChart.tsx'
+import RagSearchPanel from './RagSearchPanel.tsx'
 import './KnowledgePanel.css'
 import {
-  Bookmark,
   CheckCircle2,
   Copy,
   Download,
@@ -54,6 +54,7 @@ export type TopologyResponse = {
 
 type DataSource = 'live' | 'mock'
 type ViewMode = 'graph' | 'table' | 'raw'
+type KnowledgeTab = 'graph' | 'rag'
 
 const MOCK_TOPOLOGY: TopologyResponse = {
   nodes: [
@@ -115,7 +116,41 @@ const MOCK_TOPOLOGY: TopologyResponse = {
   },
 }
 
-const DISPLAY_CYPHER = 'MATCH (n) RETURN n LIMIT 25;'
+const NODE_LABEL_ZH: Record<string, string> = {
+  Area: '区域',
+  Device: '设备',
+  Switch: '交换机',
+  access_point: '接入点',
+  aggregation_switch: '汇聚交换机',
+  application_server: '应用服务器',
+  controller: '控制器',
+  gateway: '网关',
+  openflow_switch: 'OpenFlow 交换机',
+}
+
+const RELATION_ZH: Record<string, string> = {
+  AFFECTS: '影响',
+  CONNECTED_TO: '已连接',
+  LOCATED_IN: '位于',
+  MANAGED_BY: '托管于',
+}
+
+const PROP_KEY_ZH: Record<string, string> = {
+  area_id: '区域 ID',
+  deviceID: '设备 ID',
+  display_name: '显示名称',
+  dpid: 'DPID',
+  layer: '网络层级',
+  management_ip: '管理 IP',
+  name: '名称',
+  service: '服务',
+  vendor: '厂商',
+  zone_id: '区域 ID',
+}
+
+function schemaLabelZh(label: string, map: Record<string, string>): string {
+  return map[label] ?? label
+}
 
 function collectPropertyKeys(nodes: TopologyNode[]): string[] {
   const keys = new Set<string>()
@@ -131,12 +166,6 @@ function pillVariant(label: string): 'area' | 'device' | 'switch' | 'all' {
   const key = label.toLowerCase()
   if (key === 'area' || key === 'device' || key === 'switch') return key
   return 'all'
-}
-
-function formatElapsed(seconds: number) {
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
 function copyText(text: string) {
@@ -220,8 +249,10 @@ type WorkspaceProps = {
   onCloseDrawer: () => void
   onRunQuery?: () => void
   queryRunning?: boolean
-  queryElapsed?: number
   queryMs?: number | null
+  loading?: boolean
+  onEnterMock?: () => void
+  onRefresh?: () => void
 }
 
 function Neo4jWorkspace({
@@ -235,21 +266,15 @@ function Neo4jWorkspace({
   onCloseDrawer,
   onRunQuery,
   queryRunning,
-  queryElapsed = 0,
   queryMs,
+  loading = false,
+  onEnterMock,
+  onRefresh,
 }: WorkspaceProps) {
   const graphChartRef = useRef<KnowledgeGraphChartHandle>(null)
   const [draftQuery, setDraftQuery] = useState('')
-  const [activeQuery, setActiveQuery] = useState(DISPLAY_CYPHER)
-  const [activeFrameOpen, setActiveFrameOpen] = useState(true)
 
   const runFromDraft = () => {
-    const trimmed = draftQuery.trim()
-    if (trimmed) {
-      setActiveQuery(trimmed)
-      setDraftQuery('')
-      setActiveFrameOpen(true)
-    }
     onRunQuery?.()
   }
 
@@ -305,9 +330,13 @@ function Neo4jWorkspace({
         <section className="knowledge-db-section">
           <h3>节点 ({totalNodes})</h3>
           <div className="knowledge-db-pills">
-            <SchemaPill label="*" variant="all" />
+            <SchemaPill label="全部" variant="all" />
             {data.meta?.node_labels.map((label) => (
-              <SchemaPill key={label} label={label} variant={pillVariant(label)} />
+              <SchemaPill
+                key={label}
+                label={schemaLabelZh(label, NODE_LABEL_ZH)}
+                variant={pillVariant(label)}
+              />
             ))}
           </div>
         </section>
@@ -315,9 +344,9 @@ function Neo4jWorkspace({
         <section className="knowledge-db-section">
           <h3>关系 ({totalEdges})</h3>
           <div className="knowledge-db-pills">
-            <SchemaPill label="*" variant="rel" />
+            <SchemaPill label="全部" variant="rel" />
             {data.meta?.relationship_types.map((rel) => (
-              <SchemaPill key={rel} label={rel} variant="rel" />
+              <SchemaPill key={rel} label={schemaLabelZh(rel, RELATION_ZH)} variant="rel" />
             ))}
           </div>
         </section>
@@ -326,12 +355,45 @@ function Neo4jWorkspace({
           <h3>属性键</h3>
           <div className="knowledge-db-pills">
             {propertyKeys.length > 0 ? (
-              propertyKeys.map((key) => <SchemaPill key={key} label={key} variant="prop" />)
+              propertyKeys.map((key) => (
+                <SchemaPill key={key} label={schemaLabelZh(key, PROP_KEY_ZH)} variant="prop" />
+              ))
             ) : (
               <span className="knowledge-db-empty">—</span>
             )}
           </div>
         </section>
+
+        <div className="knowledge-db-panel__footer">
+          {dataSource === 'mock' ? (
+            <span className="knowledge-page__badge">演示数据</span>
+          ) : null}
+          {loading ? (
+            <span className="knowledge-page__badge knowledge-page__badge--loading">连接 Neo4j…</span>
+          ) : null}
+          <div className="knowledge-db-panel__actions">
+            <button
+              type="button"
+              className={
+                dataSource === 'mock'
+                  ? 'knowledge-page__btn knowledge-page__btn--active'
+                  : 'knowledge-page__btn'
+              }
+              onClick={onEnterMock}
+            >
+              模拟
+            </button>
+            <button
+              type="button"
+              className="knowledge-page__btn"
+              onClick={onRefresh}
+              disabled={loading}
+            >
+              <RefreshCw size={14} className={loading ? 'knowledge-spin' : undefined} />
+              刷新
+            </button>
+          </div>
+        </div>
       </aside>
 
       <div className="knowledge-workspace">
@@ -366,48 +428,6 @@ function Neo4jWorkspace({
               </button>
             </div>
           </div>
-
-          {activeFrameOpen && (
-            <div className="knowledge-console__row knowledge-console__row--active">
-              <span className="knowledge-console__prompt">neo4j$</span>
-              <div className="knowledge-console__field knowledge-console__field--active">
-                <input
-                  type="text"
-                  className="knowledge-console__input"
-                  value={activeQuery}
-                  onChange={(e) => setActiveQuery(e.target.value)}
-                  onKeyDown={(e) => handleQueryKeyDown(e, () => onRunQuery?.())}
-                  spellCheck={false}
-                  aria-label="Cypher 查询"
-                />
-              </div>
-              <div className="knowledge-console__actions">
-                <button type="button" className="knowledge-console__icon-btn" title="收藏" aria-label="收藏">
-                  <Bookmark size={16} />
-                </button>
-                <button
-                  type="button"
-                  className="knowledge-console__icon-btn knowledge-console__icon-btn--run"
-                  title="运行"
-                  aria-label="运行查询"
-                  onClick={onRunQuery}
-                  disabled={queryRunning}
-                >
-                  <Play size={16} fill="currentColor" />
-                </button>
-                <span className="knowledge-console__timer">{formatElapsed(queryElapsed)}</span>
-                <button
-                  type="button"
-                  className="knowledge-console__icon-btn"
-                  title="关闭"
-                  aria-label="关闭"
-                  onClick={() => setActiveFrameOpen(false)}
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="knowledge-results">
@@ -604,43 +624,24 @@ function Neo4jWorkspace({
 }
 
 function KnowledgePanel() {
+  const [activeTab, setActiveTab] = useState<KnowledgeTab>('graph')
   const [viewMode, setViewMode] = useState<ViewMode>('graph')
-  const [dataSource, setDataSource] = useState<DataSource>('mock')
+  const [dataSource, setDataSource] = useState<DataSource>('live')
   const [liveData, setLiveData] = useState<TopologyResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [queryElapsed, setQueryElapsed] = useState(0)
   const [queryMs, setQueryMs] = useState<number | null>(18)
-  const timerRef = useRef<number | null>(null)
   const startRef = useRef<number>(0)
 
   const displayData = dataSource === 'mock' ? MOCK_TOPOLOGY : liveData
-
-  const stopTimer = useCallback(() => {
-    if (timerRef.current != null) {
-      window.clearInterval(timerRef.current)
-      timerRef.current = null
-    }
-  }, [])
-
-  const startTimer = useCallback(() => {
-    stopTimer()
-    startRef.current = Date.now()
-    setQueryElapsed(0)
-    timerRef.current = window.setInterval(() => {
-      setQueryElapsed(Math.floor((Date.now() - startRef.current) / 1000))
-    }, 1000)
-  }, [stopTimer])
-
-  useEffect(() => () => stopTimer(), [stopTimer])
 
   const loadTopology = useCallback(async () => {
     setDataSource('live')
     setLoading(true)
     setError(null)
-    startTimer()
+    startRef.current = Date.now()
     const base = import.meta.env.VITE_API_BASE_URL ?? ''
     const token = localStorage.getItem('access_token')
     const headers: HeadersInit = { Accept: 'application/json' }
@@ -665,10 +666,13 @@ function KnowledgePanel() {
       setLiveData(null)
       setQueryMs(null)
     } finally {
-      stopTimer()
       setLoading(false)
     }
-  }, [startTimer, stopTimer])
+  }, [])
+
+  useEffect(() => {
+    void loadTopology()
+  }, [loadTopology])
 
   const enterMockMode = useCallback(() => {
     setDataSource('mock')
@@ -676,7 +680,6 @@ function KnowledgePanel() {
     setSelectedId(null)
     setDrawerOpen(false)
     setQueryMs(18)
-    setQueryElapsed(0)
   }, [])
 
   const handleSelectNode = useCallback((id: string) => {
@@ -693,90 +696,100 @@ function KnowledgePanel() {
     if (dataSource === 'live') {
       void loadTopology()
     } else {
-      startTimer()
-      window.setTimeout(() => {
-        stopTimer()
-        setQueryMs(18)
-      }, 400)
+      window.setTimeout(() => setQueryMs(18), 400)
     }
-  }, [dataSource, loadTopology, startTimer, stopTimer])
+  }, [dataSource, loadTopology])
 
   const showError = dataSource === 'live' && !loading && error
   const showContent = dataSource === 'mock' || (Boolean(liveData) && !loading && !error)
 
-  const toolbar = (
-    <div className="knowledge-page__toolbar">
-      <div className="knowledge-page__toolbar-info">
-        {dataSource === 'mock' && <span className="knowledge-page__badge">演示数据</span>}
-        {loading && <span className="knowledge-page__badge knowledge-page__badge--loading">连接 Neo4j…</span>}
-      </div>
-      <div className="knowledge-page__toolbar-actions">
-        <button
-          type="button"
-          className={
-            dataSource === 'mock'
-              ? 'knowledge-page__btn knowledge-page__btn--active'
-              : 'knowledge-page__btn'
-          }
-          onClick={enterMockMode}
-        >
-          模拟
-        </button>
-        <button
-          type="button"
-          className="knowledge-page__btn"
-          onClick={() => void loadTopology()}
-          disabled={loading}
-        >
-          <RefreshCw size={14} className={loading ? 'knowledge-spin' : undefined} />
-          刷新
-        </button>
-      </div>
-    </div>
-  )
-
   return (
     <div className="knowledge-page">
-      {showError && (
-        <>
-          {toolbar}
-          <div className="knowledge-page__error">
-            <p>{error}</p>
-            <p>请启动 Neo4j（bolt://localhost:7687）或点击「模拟」查看演示。</p>
-            <div className="knowledge-page__error-actions">
-              <button type="button" className="knowledge-page__btn knowledge-page__btn--active" onClick={enterMockMode}>
-                模拟
-              </button>
-              <button type="button" className="knowledge-page__btn" onClick={() => void loadTopology()}>
-                重试
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      <div className="knowledge-page__tabs" role="tablist" aria-label="知识库视图">
+        <div className="knowledge-page__tabs-inner">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'graph'}
+            className={
+              activeTab === 'graph'
+                ? 'knowledge-page__tab knowledge-page__tab--active'
+                : 'knowledge-page__tab'
+            }
+            onClick={() => setActiveTab('graph')}
+          >
+            <Network size={16} strokeWidth={2} aria-hidden="true" />
+            <span>图谱展示</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'rag'}
+            className={
+              activeTab === 'rag'
+                ? 'knowledge-page__tab knowledge-page__tab--active'
+                : 'knowledge-page__tab'
+            }
+            onClick={() => setActiveTab('rag')}
+          >
+            <Search size={16} strokeWidth={2} aria-hidden="true" />
+            <span>图RAG检索</span>
+          </button>
+        </div>
+      </div>
 
-      {showContent && displayData && (
-        <div className="knowledge-page__body">
-          <div className="knowledge-shell">
-            {toolbar}
-            {loading && dataSource === 'live' && (
-              <div className="knowledge-page__overlay">正在连接 Neo4j…</div>
-            )}
-            <Neo4jWorkspace
-              data={displayData}
-              dataSource={dataSource}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-              selectedId={selectedId}
-              onSelectNode={handleSelectNode}
-              drawerOpen={drawerOpen}
-              onCloseDrawer={handleCloseDrawer}
-              onRunQuery={runQuery}
-              queryRunning={loading}
-              queryElapsed={queryElapsed}
-              queryMs={queryMs}
-            />
-          </div>
+      {activeTab === 'graph' ? (
+        <>
+          {showError && (
+            <>
+              <div className="knowledge-page__error">
+                <p>{error}</p>
+                <p>请启动 Neo4j（bolt://localhost:7687）或点击「模拟」查看演示。</p>
+                <div className="knowledge-page__error-actions">
+                  <button
+                    type="button"
+                    className="knowledge-page__btn knowledge-page__btn--active"
+                    onClick={enterMockMode}
+                  >
+                    模拟
+                  </button>
+                  <button type="button" className="knowledge-page__btn" onClick={() => void loadTopology()}>
+                    重试
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {showContent && displayData && (
+            <div className="knowledge-page__body">
+              <div className="knowledge-shell">
+                {loading && dataSource === 'live' && (
+                  <div className="knowledge-page__overlay">正在连接 Neo4j…</div>
+                )}
+                <Neo4jWorkspace
+                  data={displayData}
+                  dataSource={dataSource}
+                  viewMode={viewMode}
+                  onViewModeChange={setViewMode}
+                  selectedId={selectedId}
+                  onSelectNode={handleSelectNode}
+                  drawerOpen={drawerOpen}
+                  onCloseDrawer={handleCloseDrawer}
+                  onRunQuery={runQuery}
+                  queryRunning={loading}
+                  queryMs={queryMs}
+                  loading={loading}
+                  onEnterMock={enterMockMode}
+                  onRefresh={() => void loadTopology()}
+                />
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="knowledge-page__tab-panel knowledge-page__tab-panel--rag" role="tabpanel">
+          <RagSearchPanel />
         </div>
       )}
     </div>

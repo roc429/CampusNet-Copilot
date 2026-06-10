@@ -1,4 +1,4 @@
-/** Auto-generated from prediction.csv — TimesFM 负载预测静态分析 */
+/** Auto-generated from prediction.csv + campus_topology.json. Run: node scripts/analyze-prediction.mjs */
 
 export const PREDICTION_STATIC = {
   "meta": {
@@ -9,7 +9,9 @@ export const PREDICTION_STATIC = {
     "rowCount": 3528,
     "snapshotCount": 146,
     "peakSnapshotAt": "2026-05-29T16:57:49",
-    "analyzedAt": "2026-05-29"
+    "analyzedAt": "2026-05-29",
+    "topology": "NMB/campus_topology.json",
+    "deviceMap": "test_data/device_map.json"
   },
   "kpi": {
     "avgLoadPct": 2.5,
@@ -54,138 +56,138 @@ export const PREDICTION_STATIC = {
   "riskMonitorRows": [
     {
       "time": "2026-05-29 16:50:08",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "风险 Q90 20.86% T+8h"
     },
     {
       "time": "2026-05-29 16:50:08",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "风险 Q90 20.84% T+7h"
     },
     {
       "time": "2026-05-29 16:50:08",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "风险 Q90 20.73% T+9h"
     },
     {
       "time": "2026-05-29 16:50:08",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "风险 Q90 20.47% T+10h"
     },
     {
       "time": "2026-05-29 16:49:31",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "风险 Q90 20.46% T+7h"
     },
     {
       "time": "2026-05-29 16:49:31",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "风险 Q90 20.43% T+6h"
     },
     {
       "time": "2026-05-29 16:49:31",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "风险 Q90 20.39% T+8h"
     },
     {
       "time": "2026-05-29 16:50:08",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "风险 Q90 20.38% T+6h"
     },
     {
       "time": "2026-05-29 16:50:08",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "风险 Q90 20.25% T+11h"
     },
     {
       "time": "2026-05-29 16:52:35",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "风险 Q90 20.12% T+11h"
     },
     {
       "time": "2026-05-29 16:52:35",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "风险 Q90 20.10% T+10h"
     },
     {
       "time": "2026-05-29 16:49:31",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "风险 Q90 20.08% T+5h"
     }
   ],
   "exceedCiRows": [
     {
       "time": "2026-05-29 16:50:08",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "超历史CI T+8h Q50 13.90%"
     },
     {
       "time": "2026-05-29 16:50:08",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "超历史CI T+7h Q50 14.61%"
     },
     {
       "time": "2026-05-29 16:50:08",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "超历史CI T+9h Q50 13.19%"
     },
     {
       "time": "2026-05-29 16:50:08",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "超历史CI T+10h Q50 12.55%"
     },
     {
       "time": "2026-05-29 16:49:31",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "超历史CI T+7h Q50 12.43%"
     },
     {
       "time": "2026-05-29 16:49:31",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "超历史CI T+6h Q50 13.05%"
     },
     {
       "time": "2026-05-29 16:49:31",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "超历史CI T+8h Q50 11.74%"
     },
     {
       "time": "2026-05-29 16:50:08",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "超历史CI T+6h Q50 14.99%"
     },
     {
       "time": "2026-05-29 16:50:08",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "超历史CI T+11h Q50 11.95%"
     },
     {
       "time": "2026-05-29 16:52:35",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "超历史CI T+11h Q50 15.42%"
     },
     {
       "time": "2026-05-29 16:52:35",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "超历史CI T+10h Q50 15.64%"
     },
     {
       "time": "2026-05-29 16:49:31",
-      "address": "SW5-P1 教学区AP",
+      "address": "SW-TEACH-01-P11 301考场无线AP",
       "code": "超历史CI T+5h Q50 13.60%"
     }
   ],
   "rolePie": [
     {
-      "name": "教学区AP",
+      "name": "教学楼区域",
       "value": 5.98
     },
     {
-      "name": "宿舍区AP",
+      "name": "宿舍区域",
       "value": 1.84
     },
     {
-      "name": "数据接入",
+      "name": "数据中心",
       "value": 0.27
     }
   ],
@@ -786,17 +788,17 @@ export const PREDICTION_STATIC = {
   },
   "roleShare": [
     {
-      "name": "教学区AP",
+      "name": "教学楼区域",
       "pct": 74,
       "avgLoad": 5.98
     },
     {
-      "name": "宿舍区AP",
+      "name": "宿舍区域",
       "pct": 23,
       "avgLoad": 1.84
     },
     {
-      "name": "数据接入",
+      "name": "数据中心",
       "pct": 3,
       "avgLoad": 0.27
     }
@@ -1144,7 +1146,7 @@ export const PREDICTION_STATIC = {
   "roleSeries": [
     {
       "role": "teaching_ap",
-      "name": "教学区AP",
+      "name": "教学楼区域",
       "color": "#1890ff",
       "series": [
         {
@@ -1271,7 +1273,7 @@ export const PREDICTION_STATIC = {
     },
     {
       "role": "dorm_ap",
-      "name": "宿舍区AP",
+      "name": "宿舍区域",
       "color": "#52c41a",
       "series": [
         {
@@ -1398,7 +1400,7 @@ export const PREDICTION_STATIC = {
     },
     {
       "role": "data_access",
-      "name": "数据接入",
+      "name": "数据中心",
       "color": "#faad14",
       "series": [
         {
@@ -1526,8 +1528,8 @@ export const PREDICTION_STATIC = {
   ],
   "portPeaks": [
     {
-      "portId": "SW5-P1",
-      "role": "教学区AP",
+      "portId": "SW-TEACH-01-P11",
+      "role": "教学楼区域",
       "peakHour": 1,
       "peakQ50": 16.59,
       "peakQ90": 17.06,
@@ -1560,11 +1562,14 @@ export const PREDICTION_STATIC = {
           "q50": 16.27,
           "q90": 18.63
         }
-      ]
+      ],
+      "deviceId": "AP-EXAM-301",
+      "deviceName": "301考场无线AP",
+      "zone": "教学楼区域"
     },
     {
-      "portId": "SW9-P1",
-      "role": "宿舍区AP",
+      "portId": "SW-DORM-01-P11",
+      "role": "宿舍区域",
       "peakHour": 5,
       "peakQ50": 9.9,
       "peakQ90": 11.45,
@@ -1597,11 +1602,14 @@ export const PREDICTION_STATIC = {
           "q50": 9.8,
           "q90": 10.71
         }
-      ]
+      ],
+      "deviceId": "AP-DORM-A1",
+      "deviceName": "宿舍A1无线AP",
+      "zone": "宿舍区域"
     },
     {
-      "portId": "SW13-P1",
-      "role": "数据接入",
+      "portId": "SW-DC-01-P1",
+      "role": "数据中心",
       "peakHour": 1,
       "peakQ50": 0.95,
       "peakQ90": 1.02,
@@ -1634,13 +1642,16 @@ export const PREDICTION_STATIC = {
           "q50": 0.91,
           "q90": 1.1
         }
-      ]
+      ],
+      "deviceId": "SW-DC-01",
+      "deviceName": "数据中心汇聚交换机",
+      "zone": "数据中心"
     }
   ],
   "portRankings": [
     {
-      "name": "SW5-P1",
-      "role": "教学区AP",
+      "name": "SW-TEACH-01-P11",
+      "role": "教学楼区域",
       "value": "16.59%",
       "up": true,
       "rank": 1,
@@ -1670,11 +1681,13 @@ export const PREDICTION_STATIC = {
           "q50": 16.27,
           "q90": 18.63
         }
-      ]
+      ],
+      "deviceId": "AP-EXAM-301",
+      "deviceName": "301考场无线AP"
     },
     {
-      "name": "SW9-P1",
-      "role": "宿舍区AP",
+      "name": "SW-DORM-01-P11",
+      "role": "宿舍区域",
       "value": "9.9%",
       "up": true,
       "rank": 2,
@@ -1704,11 +1717,13 @@ export const PREDICTION_STATIC = {
           "q50": 9.8,
           "q90": 10.71
         }
-      ]
+      ],
+      "deviceId": "AP-DORM-A1",
+      "deviceName": "宿舍A1无线AP"
     },
     {
-      "name": "SW13-P1",
-      "role": "数据接入",
+      "name": "SW-DC-01-P1",
+      "role": "数据中心",
       "value": "0.95%",
       "up": true,
       "rank": 3,
@@ -1738,7 +1753,9 @@ export const PREDICTION_STATIC = {
           "q50": 0.91,
           "q90": 1.1
         }
-      ]
+      ],
+      "deviceId": "SW-DC-01",
+      "deviceName": "数据中心汇聚交换机"
     }
   ]
 } as const

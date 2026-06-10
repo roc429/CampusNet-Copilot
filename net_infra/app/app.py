@@ -35,6 +35,7 @@ from app.schemas import (
     SecurityCheckRequest,
     SecurityDecision,
 )
+from app.rag_bridge import rag_hybrid_search
 from app.services.ops_mcp_service import OpsMCPService
 from app.services.sdn_controller_adapter import SDNControllerAdapter
 from app.stores import OpsMemoryStore
@@ -220,6 +221,13 @@ async def agent_status(event_id: str | None = None) -> dict[str, object]:
     }
 
 
+@app.get("/api/rag/test")
+async def rag_test(device_id: str = "AP-EXAM-302", query: str = "") -> dict[str, object]:
+    """NMB GraphRAG 桥接 — 前端知识库检索（文档 2.4）。"""
+
+    return await rag_hybrid_search(query, device_id)
+
+
 def _drain_report_queue() -> None:
     while not report_queue.empty():
         report = report_queue.get_nowait()
@@ -332,6 +340,7 @@ async def list_events() -> list[dict[str, str | None]]:
             "device_id": event.device_id,
             "severity": event.severity,
             "status": event.status,
+            "timestamp": event.timestamp,
         }
         for event in reversed(list(store.events.values()))
     ]
@@ -414,9 +423,3 @@ async def audit_logs() -> dict[str, object]:
     """查看安全护栏审计记录。"""
 
     return {"count": len(store.audit_logs), "items": list(store.audit_logs.values())}
-# ── NMB GraphRAG 桥接 ──
-from app.rag_bridge import rag_hybrid_search
-@app.get("/api/rag/test")
-async def rag_test(device_id: str = "AP-EXAM-302", query: str = ""):
-    result = await rag_hybrid_search(query, device_id)
-    return result

@@ -1,0 +1,90 @@
+.mcp-health {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 20px;
+  background: rgba(6, 18, 42, 0.88);
+  border-top: 1px solid rgba(80, 140, 255, 0.25);
+  backdrop-filter: blur(6px);
+  font-size: 11px;
+  color: #b8cce8;
+}
+
+.mcp-health__summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mcp-health__title {
+  font-weight: 600;
+  color: #e8f2ff;
+}
+
+.mcp-health__badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.mcp-health__badge--ok {
+  background: rgba(52, 168, 83, 0.2);
+  color: #7ddea0;
+}
+
+.mcp-health__badge--err {
+  background: rgba(255, 82, 82, 0.2);
+  color: #ff9a9a;
+}
+
+.mcp-health__err {
+  color: #ff9a9a;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mcp-health__servers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.mcp-health__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 160, 220, 0.25);
+  text-transform: capitalize;
+}
+
+.mcp-health__chip--on {
+  border-color: rgba(80, 200, 120, 0.45);
+  color: #9ae8b8;
+}
+
+.mcp-health__chip--off {
+  opacity: 0.55;
+}
+
+.mcp-health__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff5252;
+}
+
+.mcp-health__chip--on .mcp-health__dot {
+  background: #34a853;
+}

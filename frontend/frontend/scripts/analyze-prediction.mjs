@@ -1,6 +1,198 @@
 import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
-const csvPath = new URL('../../../prediction.csv', import.meta.url)
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const repoRoot = path.resolve(__dirname, '../../..')
+
+const topologyPath = path.join(repoRoot, 'NMB', 'campus_topology.json')
+const deviceMapPath = path.join(repoRoot, 'test_data', 'device_map.json')
+const topology = JSON.parse(fs.readFileSync(topologyPath, 'utf8'))
+const deviceMap = JSON.parse(fs.readFileSync(deviceMapPath, 'utf8'))
+
+const devicesById = Object.fromEntries(topology.devices.map((d) => [d.device_id, d]))
+const zonesById = Object.fromEntries(topology.zones.map((z) => [z.zone_id, z.name]))
+
+/** CSV dpid → 拓扑上联端口（与 analyze-telemetry.mjs 一致） */
+const UPLINK_BY_DEVICE = {
+  'AP-EXAM-301': { portId: 'SW-TEACH-01-P11', port: 11 },
+  'AP-EXAM-302': { portId: 'SW-TEACH-01-P12', port: 12 },
+  'AP-EXAM-303': { portId: 'SW-TEACH-01-P13', port: 13 },
+  'AP-LIB-01': { portId: 'SW-TEACH-01-P14', port: 14 },
+  'AP-DORM-A1': { portId: 'SW-DORM-01-P11', port: 11 },
+  'AP-DORM-A2': { portId: 'SW-DORM-01-P12', port: 12 },
+  'SW-TEACH-01': { portId: 'SW-TEACH-01-P1', port: 1 },
+  'SW-DORM-01': { portId: 'SW-DORM-01-P1', port: 1 },
+  'SW-DC-01': { portId: 'SW-DC-01-P1', port: 1 },
+  'OF-CORE-01': { portId: 'OF-CORE-01-P1', port: 1 },
+}
+
+const dpidToDeviceId = Object.fromEntries(
+  Object.entries(deviceMap.devices).map(([deviceId, info]) => [String(info.dpid), deviceId]),
+)
+
+const ROLE_ZONE = {
+  teaching_ap: zonesById['ZONE-TEACH'] ?? '教学楼区域',
+  dorm_ap: zonesById['ZONE-DORM'] ?? '宿舍区域',
+  data_access: zonesById['ZONE-DC'] ?? '数据中心',
+  agg_switch: zonesById['ZONE-DC'] ?? '数据中心',
+  core_switch: zonesById['ZONE-DC'] ?? '数据中心',
+}
+
+const ROLE_COLORS = {
+  teaching_ap: '#1890ff',
+  dorm_ap: '#52c41a',
+  data_access: '#faad14',
+  agg_switch: '#faad14',
+  core_switch: '#faad14',
+}
+
+/** 预测看板代表端口：教学 AP / 宿舍 AP / 数据中心汇聚 */
+const PREDICTION_PORT_KEYS = [
+  { dpid: '5', port: '1', role: 'teaching_ap' },
+  { dpid: '9', port: '1', role: 'dorm_ap' },
+  { dpid: '15', port: '1', role: 'agg_switch', fallbackDpid: '13', fallbackRole: 'data_access' },
+]
+
+function resolvePort(dpid, port, role) {
+  const deviceId = dpidToDeviceId[String(dpid)]
+  if (!deviceId) return null
+  const device = devicesById[deviceId]
+  if (!device) return null
+  const uplink = UPLINK_BY_DEVICE[deviceId] ?? {
+    portId: `${deviceId}-P${port}`,
+    port: Number(port),
+  }
+  return {
+    deviceId,
+    deviceName: device.name,
+    zoneName: zonesById[device.zone_id] ?? device.zone_id,
+    roleLabel: ROLE_ZONE[role] ?? role,
+    portId: uplink.portId,
+    port: uplink.port,
+  }
+}
+
+function formatAddress(meta) {
+  return `${meta.portId} ${meta.deviceName}`
+}
+
+function loadStaticJson(outPath) {
+  const raw = fs.readFileSync(outPath, 'utf8')
+  const start = raw.indexOf('{')
+  const end = raw.lastIndexOf('} as const')
+  if (start < 0 || end < 0) throw new Error('无法解析 predictionStaticData.ts')
+  return JSON.parse(raw.slice(start, end + 1))
+}
+
+function migrateStaticData(data) {
+  const legacyPortMap = {
+    'SW5-P1': resolvePort('5', '1', 'teaching_ap'),
+    'SW9-P1': resolvePort('9', '1', 'dorm_ap'),
+    'SW13-P1': resolvePort('15', '1', 'agg_switch') ?? resolvePort('13', '1', 'data_access'),
+  }
+
+  const legacyZone = {
+    教学区AP: ROLE_ZONE.teaching_ap,
+    宿舍区AP: ROLE_ZONE.dorm_ap,
+    数据接入: ROLE_ZONE.data_access,
+  }
+
+  const mapPortId = (oldId) => legacyPortMap[oldId]?.portId ?? oldId
+  const mapRole = (old) => legacyZone[old] ?? old
+
+  const transformRows = (rows) =>
+    rows.map((row) => {
+      const legacy = row.address?.match(/^(SW\d+-P\d+)/)?.[1]
+      const meta = legacy ? legacyPortMap[legacy] : null
+      return meta
+        ? { ...row, address: formatAddress(meta) }
+        : {
+            ...row,
+            address: row.address?.replace(/教学区AP|宿舍区AP|数据接入/g, (m) => mapRole(m)),
+          }
+    })
+
+  data.meta = {
+    ...data.meta,
+    topology: 'NMB/campus_topology.json',
+    deviceMap: 'test_data/device_map.json',
+  }
+
+  data.riskMonitorRows = transformRows(data.riskMonitorRows ?? [])
+  data.exceedCiRows = transformRows(data.exceedCiRows ?? [])
+
+  data.rolePie = (data.rolePie ?? []).map((item) => ({
+    ...item,
+    name: mapRole(item.name),
+  }))
+
+  data.roleShare = (data.roleShare ?? []).map((item) => ({
+    ...item,
+    name: mapRole(item.name),
+  }))
+
+  data.roleSeries = (data.roleSeries ?? []).map((item) => ({
+    ...item,
+    name: mapRole(item.name),
+    color: ROLE_COLORS[item.role] ?? item.color,
+  }))
+
+  data.portPeaks = (data.portPeaks ?? []).map((item) => {
+    const meta = legacyPortMap[item.portId] ?? null
+    if (!meta) {
+      return { ...item, role: mapRole(item.role) }
+    }
+    return {
+      ...item,
+      portId: meta.portId,
+      deviceId: meta.deviceId,
+      deviceName: meta.deviceName,
+      zone: meta.zoneName,
+      role: meta.roleLabel,
+    }
+  })
+
+  data.portRankings = (data.portRankings ?? []).map((item) => {
+    const meta = legacyPortMap[item.name] ?? null
+    if (!meta) {
+      return { ...item, role: mapRole(item.role) }
+    }
+    return {
+      ...item,
+      name: meta.portId,
+      deviceId: meta.deviceId,
+      deviceName: meta.deviceName,
+      role: meta.roleLabel,
+    }
+  })
+
+  return data
+}
+
+function writeStatic(outPath, out) {
+  const body = `/** Auto-generated from prediction.csv + campus_topology.json. Run: node scripts/analyze-prediction.mjs */\n\nexport const PREDICTION_STATIC = ${JSON.stringify(out, null, 2)} as const\n\nexport type PredictionStatic = typeof PREDICTION_STATIC\nexport type HorizonKey = typeof PREDICTION_STATIC.horizonKeys[number]\n`
+  fs.writeFileSync(outPath, body, 'utf8')
+}
+
+const csvCandidates = [
+  path.join(repoRoot, 'test_data', 'prediction.csv'),
+  path.join(repoRoot, 'prediction.csv'),
+]
+const csvPath = csvCandidates.find((p) => fs.existsSync(p))
+const outPath = path.join(
+  repoRoot,
+  'frontend/frontend/src/components/store-sales-dashboard/predictionStaticData.ts',
+)
+
+if (!csvPath) {
+  console.log('未找到 prediction.csv，迁移现有 predictionStaticData.ts …')
+  const data = migrateStaticData(loadStaticJson(outPath))
+  writeStatic(outPath, data)
+  console.log('migrated', outPath)
+  process.exit(0)
+}
+
 const text = fs.readFileSync(csvPath, 'utf8')
 const lines = text.trim().split(/\r?\n/)
 const headers = lines[0].split(',')
@@ -12,18 +204,6 @@ const rows = lines.slice(1).map((line) => {
   })
   return o
 })
-
-const roleLabels = {
-  teaching_ap: '教学区AP',
-  dorm_ap: '宿舍区AP',
-  data_access: '数据接入',
-}
-
-const roleColors = {
-  teaching_ap: '#1890ff',
-  dorm_ap: '#52c41a',
-  data_access: '#faad14',
-}
 
 const hours = Array.from({ length: 24 }, (_, i) => i + 1)
 const thresholdPct = 80
@@ -55,9 +235,10 @@ function buildMonitorRows(filterFn, codeFn, limit = 12) {
     const key = `${r.dpid}|${r.port}|${r.future_hour}|${r.timestamp_iso}`
     if (seen.has(key)) continue
     seen.add(key)
+    const meta = resolvePort(r.dpid, r.port, r.role)
     out.push({
       time: r.timestamp_iso.slice(0, 19).replace('T', ' '),
-      address: `SW${r.dpid}-P${r.port} ${roleLabels[r.role] ?? r.role}`,
+      address: meta ? formatAddress(meta) : `SW${r.dpid}-P${r.port} ${ROLE_ZONE[r.role] ?? r.role}`,
       code: codeFn(r),
     })
     if (out.length >= limit) break
@@ -68,8 +249,8 @@ function buildMonitorRows(filterFn, codeFn, limit = 12) {
 const allSeries = avgSeries(() => true)
 const roleSeries = ['teaching_ap', 'dorm_ap', 'data_access'].map((role) => ({
   role,
-  name: roleLabels[role],
-  color: roleColors[role],
+  name: ROLE_ZONE[role],
+  color: ROLE_COLORS[role],
   series: avgSeries((r) => r.role === role).map(({ hour, q50, q90 }) => ({ hour, q50, q90 })),
 }))
 
@@ -89,9 +270,15 @@ const peakTs = Object.entries(byTs).sort(
 
 const peakSnapshotSeries = avgSeries((r) => r.timestamp_iso === peakTs)
 
-const portPeaks = ['5|1|teaching_ap', '9|1|dorm_ap', '13|1|data_access'].map((key) => {
-  const [dpid, port, role] = key.split('|')
-  const pts = rows.filter((r) => r.dpid === dpid && r.port === port && r.role === role)
+function buildPortPeak({ dpid, port, role, fallbackDpid, fallbackRole }) {
+  let pts = rows.filter((r) => r.dpid === dpid && r.port === port && r.role === role)
+  let meta = resolvePort(dpid, port, role)
+  if (pts.length === 0 && fallbackDpid) {
+    pts = rows.filter(
+      (r) => r.dpid === fallbackDpid && r.port === port && r.role === fallbackRole,
+    )
+    meta = resolvePort(fallbackDpid, port, fallbackRole)
+  }
   const byH = {}
   for (const r of pts) {
     const h = +r.future_hour
@@ -100,7 +287,9 @@ const portPeaks = ['5|1|teaching_ap', '9|1|dorm_ap', '13|1|data_access'].map((ke
       byH[h] = { q50, q90: +r.q90 * 100, trend: r.trend }
     }
   }
-  const peakH = +Object.entries(byH).sort((a, b) => b[1].q50 - a[1].q50)[0][0]
+  const peakEntry = Object.entries(byH).sort((a, b) => b[1].q50 - a[1].q50)[0]
+  if (!peakEntry || !meta) return null
+  const peakH = +peakEntry[0]
   const h24 = byH[24]
   const hourTop = Object.entries(byH)
     .sort((a, b) => b[1].q50 - a[1].q50)
@@ -111,8 +300,11 @@ const portPeaks = ['5|1|teaching_ap', '9|1|dorm_ap', '13|1|data_access'].map((ke
       q90: Number(v.q90.toFixed(2)),
     }))
   return {
-    portId: `SW${dpid}-P${port}`,
-    role: roleLabels[role],
+    portId: meta.portId,
+    deviceId: meta.deviceId,
+    deviceName: meta.deviceName,
+    zone: meta.zoneName,
+    role: meta.roleLabel,
     peakHour: peakH,
     peakQ50: Number(byH[peakH].q50.toFixed(2)),
     peakQ90: Number(byH[peakH].q90.toFixed(2)),
@@ -121,7 +313,9 @@ const portPeaks = ['5|1|teaching_ap', '9|1|dorm_ap', '13|1|data_access'].map((ke
     trend: byH[peakH].trend,
     hourTop,
   }
-})
+}
+
+const portPeaks = PREDICTION_PORT_KEYS.map(buildPortPeak).filter(Boolean)
 
 const avgLoad = q50all.reduce((a, b) => a + b, 0) / q50all.length
 const peakQ50 = Math.max(...q50all)
@@ -129,9 +323,13 @@ const peakQ90 = Math.max(...q90all)
 
 const overviewStats = [
   { value: String(Object.keys(byTs).length), label: '预测快照数', color: '#006cff' },
-  { value: '3', label: '监控端口数', color: '#6acca3' },
+  { value: String(portPeaks.length), label: '监控端口数', color: '#6acca3' },
   { value: `${avgLoad.toFixed(1)}%`, label: '平均预测负载', color: '#6acca3' },
-  { value: String(rows.filter((r) => r.risk === 'True').length), label: '风险预测点', color: '#ed3f35' },
+  {
+    value: String(rows.filter((r) => r.risk === 'True').length),
+    label: '风险预测点',
+    color: '#ed3f35',
+  },
 ]
 
 const riskMonitorRows = buildMonitorRows(
@@ -146,7 +344,7 @@ const exceedCiRows = buildMonitorRows(
 
 const roleAvgLoad = ['teaching_ap', 'dorm_ap', 'data_access'].map((role) => {
   const pts = rows.filter((r) => r.role === role)
-  return { name: roleLabels[role], value: meanPct(pts, 'q50') }
+  return { name: ROLE_ZONE[role], value: meanPct(pts, 'q50') }
 })
 
 const hourlyBar = [1, 3, 6, 9, 12, 15, 18, 21, 24].map((h) => {
@@ -195,6 +393,8 @@ const portRankings = [...portPeaks]
   .sort((a, b) => b.peakQ50 - a.peakQ50)
   .map((p, i) => ({
     name: p.portId,
+    deviceId: p.deviceId,
+    deviceName: p.deviceName,
     role: p.role,
     value: `${p.peakQ50}%`,
     up: p.trend !== 'falling',
@@ -204,21 +404,23 @@ const portRankings = [...portPeaks]
 
 const out = {
   meta: {
-    source: 'prediction.csv',
+    source: path.basename(csvPath),
+    topology: 'NMB/campus_topology.json',
+    deviceMap: 'test_data/device_map.json',
     model: 'TimesFM 2.5-200M',
     metric: 'load',
     horizonHours: 24,
     rowCount: rows.length,
     snapshotCount: Object.keys(byTs).length,
     peakSnapshotAt: peakTs,
-    analyzedAt: '2026-05-29',
+    analyzedAt: new Date().toISOString().slice(0, 10),
   },
   kpi: {
     avgLoadPct: Number(avgLoad.toFixed(2)),
     peakQ50Pct: Number(peakQ50.toFixed(2)),
     peakQ90Pct: Number(peakQ90.toFixed(2)),
     thresholdPct,
-    portCount: 3,
+    portCount: portPeaks.length,
     riskPointCount: rows.filter((r) => r.risk === 'True').length,
     exceedThresholdCount: rows.filter((r) => r.exceed_threshold === 'True').length,
     exceedCiCount: rows.filter((r) => r.exceed_confidence_interval === 'True').length,
@@ -251,7 +453,5 @@ const out = {
   portRankings,
 }
 
-const outPath = new URL('../src/components/store-sales-dashboard/predictionStaticData.ts', import.meta.url)
-const body = `/** Auto-generated from prediction.csv — TimesFM 负载预测静态分析 */\n\nexport const PREDICTION_STATIC = ${JSON.stringify(out, null, 2)} as const\n\nexport type PredictionStatic = typeof PREDICTION_STATIC\nexport type HorizonKey = typeof PREDICTION_STATIC.horizonKeys[number]\n`
-fs.writeFileSync(outPath, body, 'utf8')
-console.log('written', outPath.pathname)
+writeStatic(outPath, out)
+console.log('written', outPath)

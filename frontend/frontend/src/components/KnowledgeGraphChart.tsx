@@ -18,6 +18,8 @@ export type GraphEdge = {
 export type KnowledgeGraphChartHandle = {
   resetView: () => void
   relayout: () => void
+  zoomIn: () => void
+  zoomOut: () => void
 }
 
 type Props = {
@@ -25,6 +27,7 @@ type Props = {
   edges: GraphEdge[]
   selectedId: string | null
   onSelectNode: (id: string) => void
+  showLegend?: boolean
 }
 
 /** 与参考视频 / 左侧数据库标签配色一致 */
@@ -61,7 +64,12 @@ function collectAdjacentIds(selectedId: string | null, edges: GraphEdge[]): Set<
   return ids
 }
 
-function buildOption(nodes: GraphNode[], edges: GraphEdge[], selectedId: string | null): EChartsOption {
+function buildOption(
+  nodes: GraphNode[],
+  edges: GraphEdge[],
+  selectedId: string | null,
+  showLegend: boolean,
+): EChartsOption {
   const nodeTypes = [...new Set(nodes.map((n) => n.type || 'Node'))]
   const categories = buildCategories(nodeTypes)
   const adjacentIds = collectAdjacentIds(selectedId, edges)
@@ -89,7 +97,7 @@ function buildOption(nodes: GraphNode[], edges: GraphEdge[], selectedId: string 
       },
     },
     legend: {
-      show: nodeTypes.length > 0,
+      show: showLegend && nodeTypes.length > 0,
       orient: 'horizontal',
       bottom: 6,
       left: 'center',
@@ -220,27 +228,46 @@ function buildOption(nodes: GraphNode[], edges: GraphEdge[], selectedId: string 
 }
 
 const KnowledgeGraphChart = forwardRef<KnowledgeGraphChartHandle, Props>(function KnowledgeGraphChart(
-  { nodes, edges, selectedId, onSelectNode },
+  { nodes, edges, selectedId, onSelectNode, showLegend = true },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<ECharts | null>(null)
   const layoutSeedRef = useRef(0)
 
-  const option = useMemo(() => buildOption(nodes, edges, selectedId), [nodes, edges, selectedId])
+  const option = useMemo(
+    () => buildOption(nodes, edges, selectedId, showLegend),
+    [nodes, edges, selectedId, showLegend],
+  )
 
   useImperativeHandle(
     ref,
     () => ({
       resetView() {
+        layoutSeedRef.current += 1
         chartRef.current?.dispatchAction({ type: 'restore' })
+        chartRef.current?.setOption(buildOption(nodes, edges, selectedId, showLegend), { notMerge: true })
       },
       relayout() {
         layoutSeedRef.current += 1
-        chartRef.current?.setOption(buildOption(nodes, edges, selectedId), { notMerge: true })
+        chartRef.current?.setOption(buildOption(nodes, edges, selectedId, showLegend), { notMerge: true })
+      },
+      zoomIn() {
+        const chart = chartRef.current
+        if (!chart) return
+        const series = (chart.getOption() as { series?: Array<{ zoom?: number }> }).series?.[0]
+        const current = typeof series?.zoom === 'number' ? series.zoom : 1
+        chart.setOption({ series: [{ zoom: Math.min(current * 1.25, 5) }] })
+      },
+      zoomOut() {
+        const chart = chartRef.current
+        if (!chart) return
+        const series = (chart.getOption() as { series?: Array<{ zoom?: number }> }).series?.[0]
+        const current = typeof series?.zoom === 'number' ? series.zoom : 1
+        chart.setOption({ series: [{ zoom: Math.max(current / 1.25, 0.35) }] })
       },
     }),
-    [nodes, edges, selectedId],
+    [nodes, edges, selectedId, showLegend],
   )
 
   useEffect(() => {

@@ -1,445 +1,419 @@
-/** Auto-generated from telemetry.csv analysis. Do not edit manually. */
+/** Auto-generated from telemetry.csv + campus_topology.json. Run: node scripts/analyze-telemetry.mjs */
 
 export const TELEMETRY_STATIC = {
+  "meta": {
+    "source": "telemetry.csv",
+    "topology": "NMB/campus_topology.json",
+    "generatedAt": "2026-06-10"
+  },
   "kpi": {
-    "avgLoadPct": 4.82,
-    "peakApLoadPct": 16.55,
-    "totalThroughputMbps": 65.65,
-    "abnormalPortCount": 0,
-    "portCount": 12,
-    "updatedAtIso": "2026-05-29T16:56:00"
+    "avgLoadPct": 29.15,
+    "peakApLoadPct": 73.47,
+    "totalThroughputMbps": 4396.37,
+    "abnormalPortCount": 10,
+    "portCount": 10,
+    "updatedAtIso": "2026-06-01T09:59:00"
   },
   "loadSeries": [
     {
-      "time": "16:49",
-      "avgLoadPct": 4.47
+      "time": "08:00",
+      "avgLoadPct": 20.81
     },
     {
-      "time": "16:50",
-      "avgLoadPct": 4.69
+      "time": "08:14",
+      "avgLoadPct": 20.31
     },
     {
-      "time": "16:51",
-      "avgLoadPct": 4.7
+      "time": "08:27",
+      "avgLoadPct": 20.67
     },
     {
-      "time": "16:52",
-      "avgLoadPct": 4.77
+      "time": "08:41",
+      "avgLoadPct": 21.11
     },
     {
-      "time": "16:53",
-      "avgLoadPct": 4.77
+      "time": "08:55",
+      "avgLoadPct": 21.5
     },
     {
-      "time": "16:54",
-      "avgLoadPct": 4.75
+      "time": "09:08",
+      "avgLoadPct": 22.47
     },
     {
-      "time": "16:55",
-      "avgLoadPct": 4.66
+      "time": "09:22",
+      "avgLoadPct": 22.71
     },
     {
-      "time": "16:56",
-      "avgLoadPct": 4.78
+      "time": "09:35",
+      "avgLoadPct": 24.3
     },
     {
-      "time": "16:57",
-      "avgLoadPct": 4.74
+      "time": "09:49",
+      "avgLoadPct": 26.94
     },
     {
-      "time": "16:58",
-      "avgLoadPct": 3.49
+      "time": "10:03",
+      "avgLoadPct": 27.12
     },
     {
-      "time": "16:59",
-      "avgLoadPct": 0.55
+      "time": "10:16",
+      "avgLoadPct": 28.78
+    },
+    {
+      "time": "10:30",
+      "avgLoadPct": 29.54
     }
   ],
   "partitionLoad": [
     {
-      "name": "数据接入",
-      "value": 0.2
+      "name": "教学楼区域",
+      "value": 25.84
     },
     {
-      "name": "宿舍区AP",
-      "value": 3.11
+      "name": "宿舍区域",
+      "value": 8.5
     },
     {
-      "name": "教学区AP",
-      "value": 9.3
+      "name": "数据中心",
+      "value": 29.35
     }
   ],
   "throughputSeries": [
     {
-      "time": "16:49",
-      "throughputMbps": 56.47
+      "time": "08:00",
+      "throughputMbps": 14202.61
     },
     {
-      "time": "16:50",
-      "throughputMbps": 384.34
+      "time": "08:14",
+      "throughputMbps": 14279.11
     },
     {
-      "time": "16:51",
-      "throughputMbps": 385.85
+      "time": "08:27",
+      "throughputMbps": 14660.67
     },
     {
-      "time": "16:52",
-      "throughputMbps": 389.19
+      "time": "08:41",
+      "throughputMbps": 15982.48
     },
     {
-      "time": "16:53",
-      "throughputMbps": 386.55
+      "time": "08:55",
+      "throughputMbps": 15238.59
     },
     {
-      "time": "16:54",
-      "throughputMbps": 388.12
+      "time": "09:08",
+      "throughputMbps": 14717.37
     },
     {
-      "time": "16:55",
-      "throughputMbps": 380.64
+      "time": "09:22",
+      "throughputMbps": 15863.25
     },
     {
-      "time": "16:56",
-      "throughputMbps": 389.24
+      "time": "09:35",
+      "throughputMbps": 15740.72
     },
     {
-      "time": "16:57",
-      "throughputMbps": 388.62
+      "time": "09:49",
+      "throughputMbps": 15777.54
     },
     {
-      "time": "16:58",
-      "throughputMbps": 299.12
+      "time": "10:03",
+      "throughputMbps": 15317.89
     },
     {
-      "time": "16:59",
-      "throughputMbps": 64.67
+      "time": "10:16",
+      "throughputMbps": 17068.19
+    },
+    {
+      "time": "10:30",
+      "throughputMbps": 4179.72
     }
   ],
   "lossHealthSeries": [
     {
-      "time": "16:49",
-      "lossPct": 0,
-      "healthScore": 97.8
+      "time": "08:00",
+      "lossPct": 0.228,
+      "healthScore": 87.3
     },
     {
-      "time": "16:50",
-      "lossPct": 0,
-      "healthScore": 97.7
+      "time": "08:14",
+      "lossPct": 0.205,
+      "healthScore": 87.8
     },
     {
-      "time": "16:51",
-      "lossPct": 0,
-      "healthScore": 97.6
+      "time": "08:27",
+      "lossPct": 0.2567,
+      "healthScore": 87.1
     },
     {
-      "time": "16:52",
-      "lossPct": 0,
-      "healthScore": 97.6
+      "time": "08:41",
+      "lossPct": 0.1823,
+      "healthScore": 87.6
     },
     {
-      "time": "16:53",
-      "lossPct": 0,
-      "healthScore": 97.6
+      "time": "08:55",
+      "lossPct": 0.24,
+      "healthScore": 86.8
     },
     {
-      "time": "16:54",
-      "lossPct": 0,
-      "healthScore": 97.6
+      "time": "09:08",
+      "lossPct": 0.2505,
+      "healthScore": 86.3
     },
     {
-      "time": "16:55",
-      "lossPct": 0,
-      "healthScore": 97.7
+      "time": "09:22",
+      "lossPct": 0.269,
+      "healthScore": 86
     },
     {
-      "time": "16:56",
-      "lossPct": 0,
-      "healthScore": 97.6
+      "time": "09:35",
+      "lossPct": 0.5563,
+      "healthScore": 82.3
     },
     {
-      "time": "16:57",
-      "lossPct": 0,
-      "healthScore": 97.6
+      "time": "09:49",
+      "lossPct": 0.787,
+      "healthScore": 78.7
     },
     {
-      "time": "16:58",
-      "lossPct": 0,
-      "healthScore": 98.3
+      "time": "10:03",
+      "lossPct": 0.9688,
+      "healthScore": 76.8
     },
     {
-      "time": "16:59",
-      "lossPct": 0,
-      "healthScore": 99.7
+      "time": "10:16",
+      "lossPct": 1.2275,
+      "healthScore": 73.3
+    },
+    {
+      "time": "10:30",
+      "lossPct": 1.426,
+      "healthScore": 71
     }
   ],
-  "ap12": [
+  "apStatus": [
     {
-      "id": "AP-1",
-      "dpid": "5",
-      "port": 1,
-      "role": "教学区AP",
-      "loadPct": 16.55,
-      "throughputMbps": 16.55,
+      "id": "AP-EXAM-301",
+      "name": "301考场无线AP",
+      "zone": "教学楼区域",
+      "uplink": "SW-TEACH-01-P11",
+      "loadPct": 27.78,
+      "throughputMbps": 27.78,
       "online": true
     },
     {
-      "id": "AP-2",
-      "dpid": "6",
-      "port": 1,
-      "role": "教学区AP",
-      "loadPct": 4.88,
-      "throughputMbps": 4.88,
+      "id": "AP-EXAM-302",
+      "name": "302考场无线AP",
+      "zone": "教学楼区域",
+      "uplink": "SW-TEACH-01-P12",
+      "loadPct": 73.47,
+      "throughputMbps": 66.76,
       "online": true
     },
     {
-      "id": "AP-3",
-      "dpid": "7",
-      "port": 1,
-      "role": "教学区AP",
-      "loadPct": 6.75,
-      "throughputMbps": 6.75,
+      "id": "AP-EXAM-303",
+      "name": "303考场无线AP",
+      "zone": "教学楼区域",
+      "uplink": "SW-TEACH-01-P13",
+      "loadPct": 19.51,
+      "throughputMbps": 19.51,
       "online": true
     },
     {
-      "id": "AP-4",
-      "dpid": "8",
-      "port": 1,
-      "role": "教学区AP",
-      "loadPct": 13.48,
-      "throughputMbps": 13.48,
+      "id": "AP-LIB-01",
+      "name": "图书馆无线AP",
+      "zone": "教学楼区域",
+      "uplink": "SW-TEACH-01-P14",
+      "loadPct": 14.24,
+      "throughputMbps": 14.24,
       "online": true
     },
     {
-      "id": "AP-5",
-      "dpid": "9",
-      "port": 1,
-      "role": "宿舍区AP",
-      "loadPct": 9.55,
-      "throughputMbps": 9.55,
+      "id": "AP-DORM-A1",
+      "name": "宿舍A1无线AP",
+      "zone": "宿舍区域",
+      "uplink": "SW-DORM-01-P11",
+      "loadPct": 16.14,
+      "throughputMbps": 16.14,
       "online": true
     },
     {
-      "id": "AP-6",
-      "dpid": "10",
-      "port": 1,
-      "role": "宿舍区AP",
-      "loadPct": 5.72,
-      "throughputMbps": 5.72,
+      "id": "AP-DORM-A2",
+      "name": "宿舍A2无线AP",
+      "zone": "宿舍区域",
+      "uplink": "SW-DORM-01-P12",
+      "loadPct": 11.39,
+      "throughputMbps": 11.39,
       "online": true
-    },
-    {
-      "id": "AP-7",
-      "dpid": "11",
-      "port": 1,
-      "role": "宿舍区AP",
-      "loadPct": 0,
-      "throughputMbps": 0,
-      "online": false
-    },
-    {
-      "id": "AP-8",
-      "dpid": "12",
-      "port": 1,
-      "role": "宿舍区AP",
-      "loadPct": 0,
-      "throughputMbps": 0,
-      "online": false
-    },
-    {
-      "id": "AP-9",
-      "dpid": "-",
-      "port": 0,
-      "role": "未接入",
-      "loadPct": 0,
-      "throughputMbps": 0,
-      "online": false
-    },
-    {
-      "id": "AP-10",
-      "dpid": "-",
-      "port": 0,
-      "role": "未接入",
-      "loadPct": 0,
-      "throughputMbps": 0,
-      "online": false
-    },
-    {
-      "id": "AP-11",
-      "dpid": "-",
-      "port": 0,
-      "role": "未接入",
-      "loadPct": 0,
-      "throughputMbps": 0,
-      "online": false
-    },
-    {
-      "id": "AP-12",
-      "dpid": "-",
-      "port": 0,
-      "role": "未接入",
-      "loadPct": 0,
-      "throughputMbps": 0,
-      "online": false
     }
   ],
   "portDetails": [
     {
-      "portId": "SW5-P1",
-      "dpid": "5",
-      "port": 1,
-      "role": "教学区AP",
+      "portId": "SW-TEACH-01-P12",
+      "deviceId": "AP-EXAM-302",
+      "deviceName": "302考场无线AP",
+      "port": 12,
+      "zone": "教学楼区域",
       "status": "Up",
-      "rateMbps": 16.55,
-      "totalTrafficGb": 0.97,
-      "dropCount": 0,
-      "loadPct": 16.55,
-      "lossPct": 0
+      "rateMbps": 66.76,
+      "totalTrafficGb": 0.563,
+      "dropCount": 11828,
+      "loadPct": 73.47,
+      "lossPct": 7.09
     },
     {
-      "portId": "SW8-P1",
-      "dpid": "8",
+      "portId": "SW-TEACH-01-P1",
+      "deviceId": "SW-TEACH-01",
+      "deviceName": "教学楼汇聚交换机",
       "port": 1,
-      "role": "教学区AP",
+      "zone": "教学楼区域",
       "status": "Up",
-      "rateMbps": 13.48,
-      "totalTrafficGb": 0.803,
-      "dropCount": 0,
-      "loadPct": 13.48,
-      "lossPct": 0
+      "rateMbps": 413.62,
+      "totalTrafficGb": 1.057,
+      "dropCount": 3220,
+      "loadPct": 41.36,
+      "lossPct": 0.31
     },
     {
-      "portId": "SW9-P1",
-      "dpid": "9",
+      "portId": "SW-DC-01-P1",
+      "deviceId": "SW-DC-01",
+      "deviceName": "数据中心汇聚交换机",
       "port": 1,
-      "role": "宿舍区AP",
+      "zone": "数据中心",
       "status": "Up",
-      "rateMbps": 9.55,
-      "totalTrafficGb": 0.605,
-      "dropCount": 0,
-      "loadPct": 9.55,
-      "lossPct": 0
+      "rateMbps": 370.29,
+      "totalTrafficGb": 1.464,
+      "dropCount": 3518,
+      "loadPct": 37.03,
+      "lossPct": 0.38
     },
     {
-      "portId": "SW7-P1",
-      "dpid": "7",
+      "portId": "OF-CORE-01-P1",
+      "deviceId": "OF-CORE-01",
+      "deviceName": "核心OpenFlow交换机",
       "port": 1,
-      "role": "教学区AP",
+      "zone": "数据中心",
       "status": "Up",
-      "rateMbps": 6.75,
-      "totalTrafficGb": 0.407,
-      "dropCount": 0,
-      "loadPct": 6.75,
-      "lossPct": 0
+      "rateMbps": 3278.73,
+      "totalTrafficGb": 1.087,
+      "dropCount": 32436,
+      "loadPct": 32.79,
+      "lossPct": 0.4
     },
     {
-      "portId": "SW10-P1",
-      "dpid": "10",
-      "port": 1,
-      "role": "宿舍区AP",
+      "portId": "SW-TEACH-01-P11",
+      "deviceId": "AP-EXAM-301",
+      "deviceName": "301考场无线AP",
+      "port": 11,
+      "zone": "教学楼区域",
       "status": "Up",
-      "rateMbps": 5.72,
-      "totalTrafficGb": 0.369,
-      "dropCount": 0,
-      "loadPct": 5.72,
-      "lossPct": 0
+      "rateMbps": 27.78,
+      "totalTrafficGb": 1.508,
+      "dropCount": 286,
+      "loadPct": 27.78,
+      "lossPct": 0.41
     },
     {
-      "portId": "SW6-P1",
-      "dpid": "6",
-      "port": 1,
-      "role": "教学区AP",
+      "portId": "SW-TEACH-01-P13",
+      "deviceId": "AP-EXAM-303",
+      "deviceName": "303考场无线AP",
+      "port": 13,
+      "zone": "教学楼区域",
       "status": "Up",
-      "rateMbps": 4.88,
-      "totalTrafficGb": 0.327,
-      "dropCount": 0,
-      "loadPct": 4.88,
-      "lossPct": 0
+      "rateMbps": 19.51,
+      "totalTrafficGb": 0.217,
+      "dropCount": 292,
+      "loadPct": 19.51,
+      "lossPct": 0.6
     },
     {
-      "portId": "SW13-P1",
-      "dpid": "13",
+      "portId": "SW-DORM-01-P1",
+      "deviceId": "SW-DORM-01",
+      "deviceName": "宿舍汇聚交换机",
       "port": 1,
-      "role": "数据接入",
+      "zone": "宿舍区域",
       "status": "Up",
-      "rateMbps": 8.72,
-      "totalTrafficGb": 0.478,
-      "dropCount": 0,
-      "loadPct": 0.87,
-      "lossPct": 0
+      "rateMbps": 177.92,
+      "totalTrafficGb": 1.583,
+      "dropCount": 242,
+      "loadPct": 17.79,
+      "lossPct": 0.05
     },
     {
-      "portId": "SW14-P1",
-      "dpid": "14",
-      "port": 1,
-      "role": "数据接入",
-      "status": "Down",
-      "rateMbps": 0,
-      "totalTrafficGb": 0,
-      "dropCount": 0,
-      "loadPct": 0,
-      "lossPct": 0
+      "portId": "SW-DORM-01-P11",
+      "deviceId": "AP-DORM-A1",
+      "deviceName": "宿舍A1无线AP",
+      "port": 11,
+      "zone": "宿舍区域",
+      "status": "Up",
+      "rateMbps": 16.14,
+      "totalTrafficGb": 1.209,
+      "dropCount": 36,
+      "loadPct": 16.14,
+      "lossPct": 0.09
     },
     {
-      "portId": "SW12-P1",
-      "dpid": "12",
-      "port": 1,
-      "role": "宿舍区AP",
-      "status": "Down",
-      "rateMbps": 0,
-      "totalTrafficGb": 0,
-      "dropCount": 0,
-      "loadPct": 0,
-      "lossPct": 0
+      "portId": "SW-TEACH-01-P14",
+      "deviceId": "AP-LIB-01",
+      "deviceName": "图书馆无线AP",
+      "port": 14,
+      "zone": "教学楼区域",
+      "status": "Up",
+      "rateMbps": 14.24,
+      "totalTrafficGb": 0.98,
+      "dropCount": 90,
+      "loadPct": 14.24,
+      "lossPct": 0.26
     },
     {
-      "portId": "SW15-P1",
-      "dpid": "15",
-      "port": 1,
-      "role": "数据接入",
-      "status": "Down",
-      "rateMbps": 0,
-      "totalTrafficGb": 0,
-      "dropCount": 0,
-      "loadPct": 0,
-      "lossPct": 0
+      "portId": "SW-DORM-01-P12",
+      "deviceId": "AP-DORM-A2",
+      "deviceName": "宿舍A2无线AP",
+      "port": 12,
+      "zone": "宿舍区域",
+      "status": "Up",
+      "rateMbps": 11.39,
+      "totalTrafficGb": 0.783,
+      "dropCount": 16,
+      "loadPct": 11.39,
+      "lossPct": 0.06
     }
   ],
   "ruleAlarms": [
     {
-      "level": "警告",
-      "type": "AP高负载",
-      "time": "2026-05-29 16:56:55",
-      "content": "教学区AP SW5 负载 16.6%"
+      "level": "严重",
+      "type": "丢包异常",
+      "time": "2026-06-01 09:59:45",
+      "content": "SW-TEACH-01-P12 302考场无线AP 丢包率 7.09%"
     },
     {
       "level": "警告",
       "type": "AP高负载",
-      "time": "2026-05-29 16:56:55",
-      "content": "教学区AP SW8 负载 13.5%"
+      "time": "2026-06-01 09:59:45",
+      "content": "301考场无线AP（AP-EXAM-301）负载 27.8%"
+    },
+    {
+      "level": "警告",
+      "type": "AP高负载",
+      "time": "2026-06-01 09:59:45",
+      "content": "303考场无线AP（AP-EXAM-303）负载 19.5%"
+    },
+    {
+      "level": "警告",
+      "type": "AP高负载",
+      "time": "2026-06-01 09:59:45",
+      "content": "图书馆无线AP（AP-LIB-01）负载 14.2%"
+    },
+    {
+      "level": "警告",
+      "type": "AP高负载",
+      "time": "2026-06-01 09:59:45",
+      "content": "宿舍A1无线AP（AP-DORM-A1）负载 16.1%"
     },
     {
       "level": "提示",
       "type": "AP负载偏高",
-      "time": "2026-05-29 16:56:55",
-      "content": "宿舍区AP SW9 负载 9.6%"
-    },
-    {
-      "level": "提示",
-      "type": "AP负载偏高",
-      "time": "2026-05-29 16:56:55",
-      "content": "教学区AP SW7 负载 6.8%"
-    },
-    {
-      "level": "提示",
-      "type": "AP负载偏高",
-      "time": "2026-05-29 16:56:55",
-      "content": "宿舍区AP SW10 负载 5.7%"
-    },
-    {
-      "level": "提示",
-      "type": "AP负载偏高",
-      "time": "2026-05-29 16:56:55",
-      "content": "教学区AP SW6 负载 4.9%"
+      "time": "2026-06-01 09:59:45",
+      "content": "宿舍A2无线AP（AP-DORM-A2）负载 11.4%"
     }
   ]
 } as const
